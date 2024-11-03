@@ -1,0 +1,2 @@
+PyGObject==3.50.0
+oracledb==2.4.1
