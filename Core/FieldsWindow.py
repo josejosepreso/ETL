@@ -4,16 +4,22 @@ from gi.repository import Gtk
 from Core.DBManager import DBManager
 
 class FieldsWindow(Gtk.Window):
-    def __init__(self, user, pswd, source, isQuery):
+    def __init__(self, user, pswd, source, isQuery, selectedFields):
         super().__init__(title="Select columns")
         self.set_border_width(20)
         self.set_default_size(250, 350)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_resizable(False)
 
-        db = DBManager(user, pswd)
-        label = "consulta" if isQuery else "tabla"
-        columns = db.get_query_columns(source) if isQuery else db.get_columns_names(source)
+        self.user = user
+        self.pswd = pswd
+        self.source = source
+        self.isQuery = isQuery
+        self.selectedFields = {}
+
+        db = DBManager(self.user, self.pswd)
+        label = "consulta" if self.isQuery else "tabla"
+        columns = db.get_query_columns(self.source) if self.isQuery else db.get_columns_names(self.source)
 
         self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         self.label = Gtk.Label()
@@ -29,15 +35,24 @@ class FieldsWindow(Gtk.Window):
             return None
 
         for i in range(0, len(columns)):
+
             checkButton = Gtk.CheckButton(label=columns[i])
             checkButton.set_active(True)
-            self.scrollableGrid.attach(checkButton, 0, i+2, 1, 1)
+            self.selectedFields[columns[i]] = 1
+
+            if len(selectedFields) != 0 and selectedFields[columns[i]] == 0:
+                checkButton.set_active(False)
+                self.selectedFields[columns[i]] = 0
+
+            checkButton.connect("toggled", self.update_selected_fields, columns[i])
+
+            self.scrollableGrid.attach(checkButton, 0, i + 2, 1, 1)
         
         self.scrolledWindow.add(self.scrollableGrid)
         self.grid.attach(self.scrolledWindow, 0, 2, 3, 1)
 
         self.okButton = Gtk.Button(label="Aceptar")
-        self.okButton.connect("clicked", self.confirm)
+        self.okButton.connect("clicked", self.confirm, selectedFields)
 
         self.cancelButton = Gtk.Button(label="Cancelar")
         self.cancelButton.connect("clicked", self.cancel)
@@ -47,8 +62,15 @@ class FieldsWindow(Gtk.Window):
 
         self.add(self.grid)
 
-    def confirm(self):
-        print("TODO")
+    def confirm(self, e, selectedFields):
+
+        for key in self.selectedFields:
+            selectedFields[key] = self.selectedFields[key]   
+
+        self.destroy()
 
     def cancel(self, e):
         self.destroy()
+
+    def update_selected_fields(self, e, key):
+        self.selectedFields[key] = 0 if self.selectedFields[key] == 1 else 1

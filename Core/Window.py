@@ -34,6 +34,7 @@ class Window(Gtk.Window):
         self.sourceType2.connect("toggled", self.activate_query, "2")
         # Source tables
         self.sourceTable = Gtk.ComboBoxText()
+        self.sourceTable.connect("changed", self.on_source_table_changed)
         # Source SQL command
         self.scrolledWindow = Gtk.ScrolledWindow()
         self.scrolledWindow.set_vexpand(True)
@@ -46,6 +47,8 @@ class Window(Gtk.Window):
         self.selectFieldsButton = Gtk.Button(label="Seleccionar campos")
         self.selectFieldsButton.connect("clicked", self.select_source_fields)
         self.selectFieldsButton.set_sensitive(False)
+
+        self.selectedSourceFields = {}
         # Source grid
         sourceGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         
@@ -95,7 +98,9 @@ class Window(Gtk.Window):
         destinationBox = Gtk.Box(spacing=0)
         destinationBox.pack_start(destinationGrid, True, True, 20)
         
-        self.conversionConfig = Gtk.Button(label="Configurar conversion")
+        self.transformationLabel = Gtk.Label(halign=Gtk.Align.START)
+        self.transformationLabel.set_markup("<b>Conversion</b>")
+        self.conversionConfig = Gtk.Button(label="Configurar conversion de datos")
         self.conversionConfig.connect("clicked", self.configure)
 
         self.done = Gtk.Button(label="Enviar")
@@ -113,9 +118,13 @@ class Window(Gtk.Window):
         grid.attach(sourceBox, 0, 2, 3, 1)
         grid.attach(self.destinationLabel, 0, 3, 1, 1)
         grid.attach(destinationBox, 0, 4, 3, 1)
-        grid.attach(buttonsBox, 0, 5, 3, 1)
+        grid.attach(self.transformationLabel, 0, 5, 1, 1)
+        grid.attach(buttonsBox, 0, 6, 3, 1)
 
         self.add(grid)
+
+    def on_source_table_changed(self, widget):
+        self.selectedSourceFields = {}
 
     def configure(self, widget):
         conversionWin = ConversionWindow()
@@ -124,10 +133,12 @@ class Window(Gtk.Window):
     def activate_table(self, widget, n):
         self.queryField.set_sensitive(False)
         self.sourceTable.set_sensitive(True)
+        self.selectedSourceFields = {}
 
     def activate_query(self, widget, n):
         self.sourceTable.set_sensitive(False)
         self.queryField.set_sensitive(True)
+        self.selectedSourceFields = {}
 
     def get_source_connection(self, widget):
         self.sourceTable.remove_all()
@@ -137,7 +148,7 @@ class Window(Gtk.Window):
         tables = db.get_user_tables()
 
         if tables is None:
-            print("Error conectando a base de datos")
+            # print("Error conectando a base de datos")
             return None
 
         self.sourceTable.set_entry_text_column(0)
@@ -169,12 +180,11 @@ class Window(Gtk.Window):
             isQuery = False
             source = self.sourceTable.get_active_text()
 
-        fieldsWindow = FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery)
+        fieldsWindow = FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields)
         fieldsWindow.show_all()
 
-
     def done_func(self, widget):
-        print("TODO")
+        print(self.selectedSourceFields)
 
     def get_query_content(self):
         buffer = self.queryField.get_buffer()
