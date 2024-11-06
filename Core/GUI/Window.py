@@ -1,9 +1,10 @@
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from Core.ConversionWindow import ConversionWindow
+from Core.GUI.ConversionWindow import ConversionWindow
 from Core.DBManager import DBManager
-from Core.FieldsWindow import FieldsWindow
+from Core.GUI.FieldsWindow import FieldsWindow
+from Core.GUI.MessageDialogWindow import MessageDialogWindow
 
 class Window(Gtk.Window):
     def __init__(self):
@@ -148,7 +149,8 @@ class Window(Gtk.Window):
         tables = db.get_user_tables()
 
         if tables is None:
-            # print("Error conectando a base de datos")
+            self.selectFieldsButton.set_sensitive(False)
+            MessageDialogWindow("Error conectando a la base de datos")
             return None
 
         self.sourceTable.set_entry_text_column(0)
@@ -180,11 +182,11 @@ class Window(Gtk.Window):
             isQuery = False
             source = self.sourceTable.get_active_text()
 
-        fieldsWindow = FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields)
-        fieldsWindow.show_all()
+        FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
 
     def done_func(self, widget):
         print(self.selectedSourceFields)
+        print("TODO")
 
     def get_query_content(self):
         buffer = self.queryField.get_buffer()

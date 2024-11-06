@@ -2,15 +2,11 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from Core.DBManager import DBManager
+from Core.GUI.MessageDialogWindow import MessageDialogWindow 
 
 class FieldsWindow(Gtk.Window):
     def __init__(self, user, pswd, source, isQuery, selectedFields):
         super().__init__(title="Select columns")
-        self.set_border_width(20)
-        self.set_default_size(250, 350)
-        self.set_position(Gtk.WindowPosition.CENTER)
-        self.set_resizable(False)
-
         self.user = user
         self.pswd = pswd
         self.source = source
@@ -21,6 +17,19 @@ class FieldsWindow(Gtk.Window):
         label = "consulta" if self.isQuery else "tabla"
         columns = db.get_query_columns(self.source) if self.isQuery else db.get_columns_names(self.source)
 
+        if columns is None:
+            self.destroy()
+            message = "No se encontraron columnas."
+            if ";" in source: message += " Consulta no debe incluir \";\""
+            MessageDialogWindow(message)
+            return None
+
+        self.set_border_width(20)
+        self.set_default_size(250, 350)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_resizable(False)
+        self.set_modal(True)
+
         self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         self.label = Gtk.Label()
         self.label.set_markup("<b>Columnas de la {text}</b>".format(text=label))
@@ -29,10 +38,6 @@ class FieldsWindow(Gtk.Window):
         self.scrollableGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         self.scrolledWindow = Gtk.ScrolledWindow()
         self.scrolledWindow.set_vexpand(True)
-
-        if columns is None:
-            self.destroy()
-            return None
 
         for i in range(0, len(columns)):
 

@@ -1,5 +1,5 @@
-from Core.Window import Window
-from Core.Window import Gtk
+from Core.GUI.Window import Window
+from Core.GUI.Window import Gtk
 
 def main():
     window = Window()

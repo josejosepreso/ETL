@@ -18,7 +18,6 @@ class DBManager:
             
             connection.close()
         except Exception as e:
-            print(e)
             return None
 
         return tables
@@ -54,7 +53,6 @@ class DBManager:
             
             connection.close()
         except Exception as e:
-            print(e)
             return None
 
         return columns
