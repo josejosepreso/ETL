@@ -5,6 +5,8 @@ from Core.GUI.ConversionWindow import ConversionWindow
 from Core.DBManager import DBManager
 from Core.GUI.FieldsWindow import FieldsWindow
 from Core.GUI.MessageDialogWindow import MessageDialogWindow
+import json
+import os.path
 
 class Window(Gtk.Window):
     def __init__(self):
@@ -12,8 +14,11 @@ class Window(Gtk.Window):
         self.set_border_width(20)
         self.set_default_size(1100, 600)
         self.set_position(Gtk.WindowPosition.CENTER)
-        self.set_resizable(False)
-
+        # self.set_resizable(False)
+        #
+        self.data = {}
+        self.prevSelectedRow = None
+        #
         # Source connection
         self.sourceConnectionLabel = Gtk.Label(label="Iniciar sesion", halign=Gtk.Align.START)
         self.sourceConnectionUser = Gtk.Entry(placeholder_text="Usuario")
@@ -64,7 +69,7 @@ class Window(Gtk.Window):
         sourceGrid.attach_next_to(self.scrolledWindow, self.sourceType2, Gtk.PositionType.RIGHT, 3, 1)
 
         sourceGrid.attach(self.fieldsLabel, 0, 5, 1, 1)
-        sourceGrid.attach_next_to(self.selectFieldsButton, self.fieldsLabel, Gtk.PositionType.RIGHT, 1, 1)
+        sourceGrid.attach_next_to(self.selectFieldsButton, self.fieldsLabel, Gtk.PositionType.RIGHT, 3, 1)
         # Source box
         sourceBox = Gtk.Box(spacing=0)
         sourceBox.pack_start(sourceGrid, True, True, 20)
@@ -104,24 +109,48 @@ class Window(Gtk.Window):
         self.conversionConfig = Gtk.Button(label="Configurar conversion de datos")
         self.conversionConfig.connect("clicked", self.configure)
 
-        self.done = Gtk.Button(label="Enviar")
+        self.done = Gtk.Button(label="Ejecutar")
         self.done.connect("clicked", self.done_func)
         #
-        buttonsGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
-        buttonsGrid.attach(self.conversionConfig, 0, 1, 1, 1)
-        buttonsGrid.attach_next_to(self.done, self.conversionConfig, Gtk.PositionType.RIGHT, 1, 1)
         #
-        buttonsBox = Gtk.Box(spacing=0)
-        buttonsBox.pack_start(buttonsGrid, True, True, 100)
-
+        self.addButton = Gtk.Button(label="Agregar")
+        self.addButton.connect("clicked", self.addNew)
+        self.delButton = Gtk.Button(label="Eliminar")
+        self.delButton.connect("clicked", self.delete)
+        #
+        buttonsGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
+        buttonsGrid.attach(self.addButton, 0, 0, 1, 1)
+        buttonsGrid.attach_next_to(self.delButton, self.addButton, Gtk.PositionType.RIGHT, 1, 1)
+        #
+        self.list = Gtk.ScrolledWindow()
+        self.list.set_vexpand(True)
+        self.list.set_hexpand(False)
+        self.listBox = Gtk.ListBox()
+        self.listBox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        #
+        self.list.add(self.listBox)
+        self.listBox.connect("row-activated", self.on_list_change)
+        #
         grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=15, row_spacing=10)
-        grid.attach(self.sourceLabel, 0, 1, 1, 1)
-        grid.attach(sourceBox, 0, 2, 3, 1)
-        grid.attach(self.destinationLabel, 0, 3, 1, 1)
-        grid.attach(destinationBox, 0, 4, 3, 1)
-        grid.attach(self.transformationLabel, 0, 5, 1, 1)
-        grid.attach(buttonsBox, 0, 6, 3, 1)
-
+        grid.attach(self.list, 0, 0, 1, 5)
+        grid.attach_next_to(self.sourceLabel, self.list, Gtk.PositionType.RIGHT, 1, 1)
+        grid.attach_next_to(sourceBox, self.sourceLabel, Gtk.PositionType.BOTTOM, 3, 1)
+        grid.attach_next_to(self.destinationLabel, sourceBox, Gtk.PositionType.BOTTOM, 1, 1)
+        grid.attach_next_to(destinationBox, self.destinationLabel, Gtk.PositionType.BOTTOM, 3, 1)
+        grid.attach_next_to(self.transformationLabel, destinationBox, Gtk.PositionType.BOTTOM, 1, 1)
+        grid.attach_next_to(self.conversionConfig, self.transformationLabel, Gtk.PositionType.BOTTOM, 3, 1)
+        grid.attach_next_to(buttonsGrid, self.list, Gtk.PositionType.BOTTOM, 1, 1)
+        grid.attach(self.done, 0, 6, 4, 1)
+        #
+        new = json.loads(self.get_new_format(0))
+        self.data.update(new)
+        row = Gtk.ListBoxRow()
+        label = Gtk.Label('name', halign=Gtk.Align.START)
+        row.add(label)
+        self.listBox.add(row)
+        self.listBox.select_row(row)
+        self.prevSelectedRow = self.listBox.get_selected_row()
+        #
         self.add(grid)
 
     def on_source_table_changed(self, widget):
@@ -142,6 +171,7 @@ class Window(Gtk.Window):
         self.selectedSourceFields = {}
 
     def get_source_connection(self, widget):
+        
         self.sourceTable.remove_all()
 
         db = DBManager(self.sourceConnectionUser, self.sourceConnectionPassword)
@@ -160,6 +190,7 @@ class Window(Gtk.Window):
         self.selectFieldsButton.set_sensitive(True)
         
     def get_destination_connection(self, widget):
+        
         self.destinationTable.remove_all()
         
         tables = ["xxx", "yyy"]
@@ -189,8 +220,60 @@ class Window(Gtk.Window):
         print("TODO")
 
     def get_query_content(self):
+        
         buffer = self.queryField.get_buffer()
         startIter, endIter = buffer.get_bounds()
         content = buffer.get_text(startIter, endIter, False)
 
         return content
+
+    def addNew(self, e):
+        row = Gtk.ListBoxRow()
+        label = Gtk.Label('name', halign=Gtk.Align.START)
+        row.add(label)
+        self.listBox.add(row)
+
+        new = json.loads(self.get_new_format(row.get_index()))
+
+        self.data.update(new)
+        print(self.data)
+
+        self.listBox.show_all()
+
+    def delete(self, e):
+        
+        # current = self.listBox.get_selected_row()
+        # self.prevSelectedRow = None        
+        # self.data.pop("%s"%(current.get_index()))
+        # self.listBox.remove(current)
+        # self.listBox.show_all()
+        print("TODO")
+
+    def on_list_change(self, e, row):
+        
+        if row.get_index() == self.prevSelectedRow.get_index():
+            return None
+        
+        index = "%s"%(self.prevSelectedRow.get_index())
+        
+        self.data[index]["source"]["user"] = self.sourceConnectionUser.get_text()
+        self.data[index]["source"]["password"] = self.sourceConnectionPassword.get_text()
+
+        self.prevSelectedRow = row
+        
+        self.show_current()
+
+    def show_current(self):
+        
+        obj = self.data["%s"%(self.listBox.get_selected_row().get_index())]
+
+        self.sourceConnectionUser.set_text(obj["source"]["user"])
+        self.sourceConnectionPassword.set_text(obj["source"]["password"])
+
+        self.destinationConnectionUser.set_text(obj["destination"]["user"])
+        self.destinationConnectionPassword.set_text(obj["destination"]["password"])
+
+        print(obj)
+
+    def get_new_format(self, index):
+        return '{"%s":{"name":"Operacion","source":{"user":"","password":"","table":"","fields":"[]"},"destination":{"user":"","password":"","table":""}}}'%(index)
