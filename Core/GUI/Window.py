@@ -6,7 +6,6 @@ from Core.DBManager import DBManager
 from Core.GUI.FieldsWindow import FieldsWindow
 from Core.GUI.MessageDialogWindow import MessageDialogWindow
 import json
-import os.path
 
 class Window(Gtk.Window):
     def __init__(self):
@@ -49,11 +48,19 @@ class Window(Gtk.Window):
         self.queryField.set_sensitive(False)
         self.scrolledWindow.add(self.queryField)
         #
-        self.fieldsLabel = Gtk.Label(label="Campos", halign=Gtk.Align.START)
+        # self.fieldsLabel = Gtk.Label(label="Campos", halign=Gtk.Align.START)
         self.selectFieldsButton = Gtk.Button(label="Seleccionar campos")
         self.selectFieldsButton.connect("clicked", self.select_source_fields)
         self.selectFieldsButton.set_sensitive(False)
 
+        self.seeDataButton = Gtk.Button(label="Visualizar datos")
+        self.seeDataButton.connect("clicked", self.see_data)
+        self.seeDataButton.set_sensitive(False)
+
+        anotherGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=True, column_spacing=10, row_spacing=10)
+        anotherGrid.attach(self.selectFieldsButton, 0, 0, 1, 1)
+        anotherGrid.attach_next_to(self.seeDataButton, self.selectFieldsButton, Gtk.PositionType.RIGHT, 1, 1)        
+        #
         self.selectedSourceFields = {}
         # Source grid
         sourceGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
@@ -68,8 +75,8 @@ class Window(Gtk.Window):
         sourceGrid.attach(self.sourceType2, 0, 4, 1, 1)
         sourceGrid.attach_next_to(self.scrolledWindow, self.sourceType2, Gtk.PositionType.RIGHT, 3, 1)
 
-        sourceGrid.attach(self.fieldsLabel, 0, 5, 1, 1)
-        sourceGrid.attach_next_to(self.selectFieldsButton, self.fieldsLabel, Gtk.PositionType.RIGHT, 3, 1)
+        #sourceGrid.attach(self.fieldsLabel, 0, 5, 1, 1)
+        sourceGrid.attach_next_to(anotherGrid, self.scrolledWindow, Gtk.PositionType.BOTTOM, 3, 1)
         # Source box
         sourceBox = Gtk.Box(spacing=0)
         sourceBox.pack_start(sourceGrid, True, True, 20)
@@ -117,6 +124,7 @@ class Window(Gtk.Window):
         self.addButton.connect("clicked", self.addNew)
         self.delButton = Gtk.Button(label="Eliminar")
         self.delButton.connect("clicked", self.delete)
+        self.delButton.set_sensitive(False)
         #
         buttonsGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         buttonsGrid.attach(self.addButton, 0, 0, 1, 1)
@@ -145,7 +153,7 @@ class Window(Gtk.Window):
         new = json.loads(self.get_new_format(0))
         self.data.update(new)
         row = Gtk.ListBoxRow()
-        label = Gtk.Label('name', halign=Gtk.Align.START)
+        label = Gtk.Label('Tarea #1', halign=Gtk.Align.START)
         row.add(label)
         self.listBox.add(row)
         self.listBox.select_row(row)
@@ -171,15 +179,19 @@ class Window(Gtk.Window):
         self.selectedSourceFields = {}
 
     def get_source_connection(self, widget):
-        
-        self.sourceTable.remove_all()
 
+        self.sourceTable.remove_all()
+        
+        if self.sourceConnectionUser.get_text() == '' and self.sourceConnectionPassword.get_text() == '':
+            return None
+        
         db = DBManager(self.sourceConnectionUser, self.sourceConnectionPassword)
         
         tables = db.get_user_tables()
 
         if tables is None:
             self.selectFieldsButton.set_sensitive(False)
+            self.seeDataButton.set_sensitive(False)
             MessageDialogWindow("Error conectando a la base de datos")
             return None
 
@@ -188,16 +200,30 @@ class Window(Gtk.Window):
             self.sourceTable.append_text(table)
 
         self.selectFieldsButton.set_sensitive(True)
+        self.seeDataButton.set_sensitive(True)
         
     def get_destination_connection(self, widget):
         
         self.destinationTable.remove_all()
+
+        if self.sourceConnectionUser.get_text() == "" or self.sourceConnectionPassword.get_text() == "":
+            return None
         
-        tables = ["xxx", "yyy"]
+        db = DBManager(self.destinationConnectionUser, self.destinationConnectionPassword)
+        
+        tables = db.get_user_tables()
+
+        if tables is None:
+            MessageDialogWindow("Error conectando a la base de datos")
+            return None
+
         self.destinationTable.set_entry_text_column(0)
         for table in tables:
             self.destinationTable.append_text(table)
 
+    def see_data(self, widget):
+        print("TODO")
+            
     def select_source_fields(self, widget):
 
         if (
@@ -216,11 +242,10 @@ class Window(Gtk.Window):
         FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
 
     def done_func(self, widget):
-        print(self.selectedSourceFields)
+        # print(self.selectedSourceFields)
         print("TODO")
 
     def get_query_content(self):
-        
         buffer = self.queryField.get_buffer()
         startIter, endIter = buffer.get_bounds()
         content = buffer.get_text(startIter, endIter, False)
@@ -229,14 +254,14 @@ class Window(Gtk.Window):
 
     def addNew(self, e):
         row = Gtk.ListBoxRow()
-        label = Gtk.Label('name', halign=Gtk.Align.START)
+        label = Gtk.Label("Tarea #%s"%(len(self.data) + 1), halign=Gtk.Align.START)
         row.add(label)
         self.listBox.add(row)
 
         new = json.loads(self.get_new_format(row.get_index()))
 
         self.data.update(new)
-        print(self.data)
+        # print(self.data)
 
         self.listBox.show_all()
 
@@ -250,7 +275,7 @@ class Window(Gtk.Window):
         print("TODO")
 
     def on_list_change(self, e, row):
-        
+
         if row.get_index() == self.prevSelectedRow.get_index():
             return None
         
@@ -259,6 +284,14 @@ class Window(Gtk.Window):
         self.data[index]["source"]["user"] = self.sourceConnectionUser.get_text()
         self.data[index]["source"]["password"] = self.sourceConnectionPassword.get_text()
 
+        self.data[index]["source"]["type"] = '1'
+        if self.sourceTable.get_sensitive():
+            self.data[index]["source"]["type"] = '0'
+
+        self.data[index]["source"]["table"] = self.sourceTable.get_active()
+        self.data[index]["source"]["fields"] = self.selectedSourceFields
+        self.data[index]["source"]["query"] = self.get_query_content()
+
         self.prevSelectedRow = row
         
         self.show_current()
@@ -266,14 +299,34 @@ class Window(Gtk.Window):
     def show_current(self):
         
         obj = self.data["%s"%(self.listBox.get_selected_row().get_index())]
+        
+        source = obj["source"]
 
-        self.sourceConnectionUser.set_text(obj["source"]["user"])
-        self.sourceConnectionPassword.set_text(obj["source"]["password"])
+        self.sourceConnectionUser.set_text(source["user"])
+        self.sourceConnectionPassword.set_text(source["password"])
 
+        self.get_source_connection(self)
+
+        if int(source["type"]) == 0:
+            self.sourceType1.set_active(1)
+            
+        if int(source["type"]) == 1:
+            self.sourceType2.set_active(1)
+
+        if source["table"] != '':
+            self.sourceTable.set_active(int(source["table"]))
+
+        query = source["query"]
+        textBuffer = Gtk.TextBuffer()
+        textBuffer.set_text(query, len(query))
+        self.queryField.set_buffer(textBuffer)
+
+        self.selectedSourceFields = source["fields"]
+        
         self.destinationConnectionUser.set_text(obj["destination"]["user"])
         self.destinationConnectionPassword.set_text(obj["destination"]["password"])
 
         print(obj)
 
     def get_new_format(self, index):
-        return '{"%s":{"name":"Operacion","source":{"user":"","password":"","table":"","fields":"[]"},"destination":{"user":"","password":"","table":""}}}'%(index)
+        return '{"%s":{"source":{"type":"0","user":"","password":"","table":"","query":"","fields":"{}"},"destination":{"user":"","password":"","table":""}}}'%(index)
