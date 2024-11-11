@@ -1,4 +1,5 @@
 import oracledb
+import re
 
 class DBManager:
     def __init__(self, user, pswd):
@@ -30,8 +31,8 @@ class DBManager:
 
             with connection.cursor() as cur:
                 cur.execute("SELECT COLUMN_NAME FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '{table_name}'".format(table_name=table))
-                for row in cur:
-                    columns.append(str(row).replace("('", "").replace("',)", ""))
+                for col in cur:
+                    columns.append(str(col[0]))
             
             connection.close()
         except Exception as e:
@@ -57,3 +58,34 @@ class DBManager:
 
         return columns
 
+    def get_data(self, source, fields, isQuery):
+        data =[]
+
+        selectedFields = []
+        for k in fields:
+            if fields[k] == 1:
+                selectedFields.append(k)
+
+        del fields
+
+        fields = str(selectedFields).replace("[","").replace("]","").replace("'","")
+        
+        query = "SELECT %s FROM %s"%(fields, source)
+
+        if isQuery:
+            query = source
+
+        try:
+            connection = oracledb.connect(user=self.user, password=self.pswd, host="localhost", port=1521, service_name="xe")
+
+            with connection.cursor() as cur:
+                cur.execute(query)
+
+                for row in cur:
+                    data.append(row)
+            
+            connection.close()
+        except Exception as e:
+            return None        
+
+        return data

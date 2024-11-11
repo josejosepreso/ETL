@@ -4,6 +4,7 @@ from gi.repository import Gtk
 from Core.GUI.ConversionWindow import ConversionWindow
 from Core.DBManager import DBManager
 from Core.GUI.FieldsWindow import FieldsWindow
+from Core.GUI.DataView import DataView
 from Core.GUI.MessageDialogWindow import MessageDialogWindow
 import json
 
@@ -11,11 +12,11 @@ class Window(Gtk.Window):
     def __init__(self):
         super().__init__(title="ETL")
         self.set_border_width(20)
-        self.set_default_size(1100, 600)
+        self.set_default_size(1124, 616)
         self.set_position(Gtk.WindowPosition.CENTER)
         # self.set_resizable(False)
         #
-        self.data = {}
+        self.data = []
         self.prevSelectedRow = None
         #
         # Source connection
@@ -53,13 +54,13 @@ class Window(Gtk.Window):
         self.selectFieldsButton.connect("clicked", self.select_source_fields)
         self.selectFieldsButton.set_sensitive(False)
 
-        self.seeDataButton = Gtk.Button(label="Visualizar datos")
-        self.seeDataButton.connect("clicked", self.see_data)
-        self.seeDataButton.set_sensitive(False)
+        self.viewDataButton = Gtk.Button(label="Visualizar datos")
+        self.viewDataButton.connect("clicked", self.view_data)
+        self.viewDataButton.set_sensitive(False)
 
         anotherGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=True, column_spacing=10, row_spacing=10)
         anotherGrid.attach(self.selectFieldsButton, 0, 0, 1, 1)
-        anotherGrid.attach_next_to(self.seeDataButton, self.selectFieldsButton, Gtk.PositionType.RIGHT, 1, 1)        
+        anotherGrid.attach_next_to(self.viewDataButton, self.selectFieldsButton, Gtk.PositionType.RIGHT, 1, 1)        
         #
         self.selectedSourceFields = {}
         # Source grid
@@ -115,16 +116,16 @@ class Window(Gtk.Window):
         self.transformationLabel.set_markup("<b>Conversion</b>")
         self.conversionConfig = Gtk.Button(label="Configurar conversion de datos")
         self.conversionConfig.connect("clicked", self.configure)
+        self.conversionConfig.set_sensitive(False)
 
         self.done = Gtk.Button(label="Ejecutar")
         self.done.connect("clicked", self.done_func)
         #
         #
         self.addButton = Gtk.Button(label="Agregar")
-        self.addButton.connect("clicked", self.addNew)
+        self.addButton.connect("clicked", self.add_new)
         self.delButton = Gtk.Button(label="Eliminar")
         self.delButton.connect("clicked", self.delete)
-        self.delButton.set_sensitive(False)
         #
         buttonsGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         buttonsGrid.attach(self.addButton, 0, 0, 1, 1)
@@ -150,8 +151,8 @@ class Window(Gtk.Window):
         grid.attach_next_to(buttonsGrid, self.list, Gtk.PositionType.BOTTOM, 1, 1)
         grid.attach(self.done, 0, 6, 4, 1)
         #
-        new = json.loads(self.get_new_format(0))
-        self.data.update(new)
+        new = json.loads(self.get_new_format())
+        self.data.append(new)
         row = Gtk.ListBoxRow()
         label = Gtk.Label('Tarea #1', halign=Gtk.Align.START)
         row.add(label)
@@ -191,7 +192,7 @@ class Window(Gtk.Window):
 
         if tables is None:
             self.selectFieldsButton.set_sensitive(False)
-            self.seeDataButton.set_sensitive(False)
+            self.viewDataButton.set_sensitive(False)
             MessageDialogWindow("Error conectando a la base de datos")
             return None
 
@@ -200,13 +201,13 @@ class Window(Gtk.Window):
             self.sourceTable.append_text(table)
 
         self.selectFieldsButton.set_sensitive(True)
-        self.seeDataButton.set_sensitive(True)
+        self.viewDataButton.set_sensitive(True)
         
     def get_destination_connection(self, widget):
         
         self.destinationTable.remove_all()
 
-        if self.sourceConnectionUser.get_text() == "" or self.sourceConnectionPassword.get_text() == "":
+        if self.destinationConnectionUser.get_text() == "" and self.destinationConnectionPassword.get_text() == "":
             return None
         
         db = DBManager(self.destinationConnectionUser, self.destinationConnectionPassword)
@@ -215,17 +216,20 @@ class Window(Gtk.Window):
 
         if tables is None:
             MessageDialogWindow("Error conectando a la base de datos")
+            self.conversionConfig.set_sensitive(False)
             return None
 
         self.destinationTable.set_entry_text_column(0)
         for table in tables:
             self.destinationTable.append_text(table)
 
-    def see_data(self, widget):
-        print("TODO")
-            
-    def select_source_fields(self, widget):
+    def view_data(self, widget):
+        self.show_modal(1)
 
+    def select_source_fields(self, widget):
+        self.show_modal(0)
+
+    def show_modal(self, action):
         if (
             (self.sourceTable.get_active_text() is None and self.sourceTable.get_sensitive()) or 
             (len(self.get_query_content()) == 0 and self.queryField.get_sensitive())
@@ -239,8 +243,12 @@ class Window(Gtk.Window):
             isQuery = False
             source = self.sourceTable.get_active_text()
 
-        FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
-
+        if action == 0:
+            FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
+            return None
+        
+        DataView(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
+        
     def done_func(self, widget):
         # print(self.selectedSourceFields)
         print("TODO")
@@ -252,60 +260,60 @@ class Window(Gtk.Window):
 
         return content
 
-    def addNew(self, e):
+    def add_new(self, e):
         row = Gtk.ListBoxRow()
         label = Gtk.Label("Tarea #%s"%(len(self.data) + 1), halign=Gtk.Align.START)
         row.add(label)
         self.listBox.add(row)
 
-        new = json.loads(self.get_new_format(row.get_index()))
+        new = json.loads(self.get_new_format())
 
-        self.data.update(new)
+        self.data.append(new)
         # print(self.data)
 
         self.listBox.show_all()
 
     def delete(self, e):
-        
-        # current = self.listBox.get_selected_row()
-        # self.prevSelectedRow = None        
-        # self.data.pop("%s"%(current.get_index()))
-        # self.listBox.remove(current)
-        # self.listBox.show_all()
-        print("TODO")
+        current = self.listBox.get_selected_row()
+        self.prevSelectedRow = None        
+        self.data.pop(current.get_index())
+        self.listBox.remove(current)
+        self.listBox.show_all()
 
     def on_list_change(self, e, row):
 
-        if row.get_index() == self.prevSelectedRow.get_index():
-            return None
+        # if row.get_index() == self.prevSelectedRow.get_index():
+            # return None
+        if self.prevSelectedRow is not None:
+            index = self.prevSelectedRow.get_index()
+            
+            self.data[index]["source"]["user"] = self.sourceConnectionUser.get_text()
+            self.data[index]["source"]["password"] = self.sourceConnectionPassword.get_text()
+            
+            self.data[index]["source"]["type"] = '0' if self.sourceTable.get_sensitive() else '1'
+        	
+            self.data[index]["source"]["table"] = self.sourceTable.get_active()
+            self.data[index]["source"]["fields"] = self.selectedSourceFields
+            self.data[index]["source"]["query"] = self.get_query_content()
+
+            self.data[index]["destination"]["user"] = self.destinationConnectionUser.get_text()
+            self.data[index]["destination"]["password"] = self.destinationConnectionPassword.get_text()
+            self.data[index]["destination"]["table"] = self.destinationTable.get_active()            
         
-        index = "%s"%(self.prevSelectedRow.get_index())
-        
-        self.data[index]["source"]["user"] = self.sourceConnectionUser.get_text()
-        self.data[index]["source"]["password"] = self.sourceConnectionPassword.get_text()
-
-        self.data[index]["source"]["type"] = '1'
-        if self.sourceTable.get_sensitive():
-            self.data[index]["source"]["type"] = '0'
-
-        self.data[index]["source"]["table"] = self.sourceTable.get_active()
-        self.data[index]["source"]["fields"] = self.selectedSourceFields
-        self.data[index]["source"]["query"] = self.get_query_content()
-
         self.prevSelectedRow = row
         
         self.show_current()
 
     def show_current(self):
         
-        obj = self.data["%s"%(self.listBox.get_selected_row().get_index())]
+        obj = self.data[self.listBox.get_selected_row().get_index()]
+
+        # print(obj)
         
         source = obj["source"]
 
         self.sourceConnectionUser.set_text(source["user"])
         self.sourceConnectionPassword.set_text(source["password"])
-
-        self.get_source_connection(self)
 
         if int(source["type"]) == 0:
             self.sourceType1.set_active(1)
@@ -313,20 +321,24 @@ class Window(Gtk.Window):
         if int(source["type"]) == 1:
             self.sourceType2.set_active(1)
 
-        if source["table"] != '':
-            self.sourceTable.set_active(int(source["table"]))
-
         query = source["query"]
         textBuffer = Gtk.TextBuffer()
         textBuffer.set_text(query, len(query))
         self.queryField.set_buffer(textBuffer)
 
-        self.selectedSourceFields = source["fields"]
-        
-        self.destinationConnectionUser.set_text(obj["destination"]["user"])
-        self.destinationConnectionPassword.set_text(obj["destination"]["password"])
+        #
+        destination = obj["destination"]
 
-        print(obj)
+        self.destinationConnectionUser.set_text(destination["user"])
+        self.destinationConnectionPassword.set_text(destination["password"])
+        #
+        self.get_source_connection(self)
+        self.get_destination_connection(self)
+        #
+        self.sourceTable.set_active(int(source["table"]))
+        self.destinationTable.set_active(int(destination["table"]))
+        #
+        self.selectedSourceFields = source["fields"]        
 
-    def get_new_format(self, index):
-        return '{"%s":{"source":{"type":"0","user":"","password":"","table":"","query":"","fields":"{}"},"destination":{"user":"","password":"","table":""}}}'%(index)
+    def get_new_format(self):
+        return '{"source":{"type":"0","user":"","password":"","table":"-1","query":"","fields":"{}"},"destination":{"user":"","password":"","table":"-1"}}'

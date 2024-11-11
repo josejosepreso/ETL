@@ -25,7 +25,7 @@ class FieldsWindow(Gtk.Window):
             return None
 
         self.set_border_width(20)
-        self.set_default_size(250, 350)
+        self.set_default_size(500, 350)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_resizable(False)
         self.set_modal(True)
@@ -42,12 +42,13 @@ class FieldsWindow(Gtk.Window):
         for i in range(0, len(columns)):
 
             checkButton = Gtk.CheckButton(label=columns[i])
-            checkButton.set_active(True)
-            self.selectedFields[columns[i]] = 1
+            
+            checkButton.set_active(False)
+            self.selectedFields[columns[i]] = 0
 
-            if len(selectedFields) != 0 and selectedFields[columns[i]] == 0:
-                checkButton.set_active(False)
-                self.selectedFields[columns[i]] = 0
+            if len(selectedFields) != 0 and selectedFields[columns[i]] == 1:
+                checkButton.set_active(True)
+                self.selectedFields[columns[i]] = 1
 
             checkButton.connect("toggled", self.update_selected_fields, columns[i])
 
