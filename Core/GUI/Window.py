@@ -4,7 +4,7 @@ from gi.repository import Gtk
 from Core.GUI.ConversionWindow import ConversionWindow
 from Core.DBManager import DBManager
 from Core.GUI.FieldsWindow import FieldsWindow
-from Core.GUI.DataView import DataView
+from Core.GUI.DataViewWindow import DataViewWindow
 from Core.GUI.MessageDialogWindow import MessageDialogWindow
 import json
 
@@ -247,7 +247,7 @@ class Window(Gtk.Window):
             FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
             return None
         
-        DataView(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
+        DataViewWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
         
     def done_func(self, widget):
         # print(self.selectedSourceFields)

@@ -4,7 +4,7 @@ from gi.repository import Gtk
 from Core.DBManager import DBManager
 from Core.GUI.MessageDialogWindow import MessageDialogWindow
 
-class DataView(Gtk.Window):
+class DataViewWindow(Gtk.Window):
     def __init__(self, user, pswd, source, isQuery, selectedFields):
         super().__init__(title="Data")
         self.user = user

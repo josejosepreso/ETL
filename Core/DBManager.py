@@ -1,5 +1,6 @@
 import oracledb
 import re
+import Core.config as config
 
 class DBManager:
     def __init__(self, user, pswd):
@@ -10,7 +11,7 @@ class DBManager:
         tables = []
 
         try:
-            connection = oracledb.connect(user=self.user, password=self.pswd, host="localhost", port=1521, service_name="xe")
+            connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
 
             with connection.cursor() as cur:
                 cur.execute("SELECT TABLE_NAME FROM USER_TABLES")
@@ -19,6 +20,7 @@ class DBManager:
             
             connection.close()
         except Exception as e:
+            print(e)
             return None
 
         return tables
@@ -27,7 +29,7 @@ class DBManager:
         columns = []
 
         try:
-            connection = oracledb.connect(user=self.user, password=self.pswd, host="localhost", port=1521, service_name="xe")
+            connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
 
             with connection.cursor() as cur:
                 cur.execute("SELECT COLUMN_NAME FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '{table_name}'".format(table_name=table))
@@ -45,7 +47,7 @@ class DBManager:
         columns = []
 
         try:
-            connection = oracledb.connect(user=self.user, password=self.pswd, host="localhost", port=1521, service_name="xe")
+            connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
 
             with connection.cursor() as cur:
                 cur.execute(query)
@@ -73,10 +75,11 @@ class DBManager:
         query = "SELECT %s FROM %s"%(fields, source)
 
         if isQuery:
-            query = source
+            source = re.search('from.*', source, flags=re.IGNORECASE|re.DOTALL).group()
+            query= "SELECT %s %s"%(fields, source)
 
         try:
-            connection = oracledb.connect(user=self.user, password=self.pswd, host="localhost", port=1521, service_name="xe")
+            connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
 
             with connection.cursor() as cur:
                 cur.execute(query)
@@ -86,6 +89,7 @@ class DBManager:
             
             connection.close()
         except Exception as e:
+            print(e)
             return None        
 
         return data

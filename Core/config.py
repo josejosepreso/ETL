@@ -1,0 +1,3 @@
+PORT=1521
+SERVICE_NAME="xe"
+HOST="localhost"
