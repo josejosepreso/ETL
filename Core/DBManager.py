@@ -68,6 +68,9 @@ class DBManager:
             if fields[k] == 1:
                 selectedFields.append(k)
 
+        if len(selectedFields) == 0:
+            return None
+
         del fields
 
         fields = str(selectedFields).replace("[","").replace("]","").replace("'","")
