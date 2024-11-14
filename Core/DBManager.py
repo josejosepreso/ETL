@@ -65,6 +65,10 @@ class DBManager:
 
         selectedFields = []
         for k in fields:
+            if not isinstance(fields[k], int):
+                selectedFields.append(fields[k])
+                continue
+            
             if fields[k] == 1:
                 selectedFields.append(k)
 

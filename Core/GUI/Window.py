@@ -5,6 +5,7 @@ from Core.GUI.ConversionWindow import ConversionWindow
 from Core.DBManager import DBManager
 from Core.GUI.FieldsWindow import FieldsWindow
 from Core.GUI.DataViewWindow import DataViewWindow
+from Core.GUI.DataLoadWindow import DataLoadWindow
 from Core.GUI.MessageDialogWindow import MessageDialogWindow
 import json
 
@@ -12,7 +13,7 @@ class Window(Gtk.Window):
     def __init__(self):
         super().__init__(title="ETL")
         self.set_border_width(20)
-        self.set_default_size(1124, 616)
+        self.set_default_size(1224, 646)
         self.set_position(Gtk.WindowPosition.CENTER)
         # self.set_resizable(False)
         #
@@ -56,11 +57,11 @@ class Window(Gtk.Window):
 
         self.viewDataButton = Gtk.Button(label="Visualizar datos")
         self.viewDataButton.connect("clicked", self.view_data)
-        self.viewDataButton.set_sensitive(False)
+        self.viewDataButton.set_sensitive(False)        
 
         anotherGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=True, column_spacing=10, row_spacing=10)
         anotherGrid.attach(self.selectFieldsButton, 0, 0, 1, 1)
-        anotherGrid.attach_next_to(self.viewDataButton, self.selectFieldsButton, Gtk.PositionType.RIGHT, 1, 1)        
+        anotherGrid.attach_next_to(self.viewDataButton, self.selectFieldsButton, Gtk.PositionType.RIGHT, 1, 1)
         #
         self.selectedSourceFields = {}
         # Source grid
@@ -81,17 +82,38 @@ class Window(Gtk.Window):
         # Source box
         sourceBox = Gtk.Box(spacing=0)
         sourceBox.pack_start(sourceGrid, True, True, 20)
+        #
+        #
+        self.transformationLabel = Gtk.Label(halign=Gtk.Align.START)
+        self.transformationLabel.set_markup("<b>Transformacion</b>")
 
+        space = Gtk.Label(halign=Gtk.Align.START)
+        self.conversionConfig = Gtk.Button(label="Configurar transformacion de datos")
+        self.conversionConfig.connect("clicked", self.configure_data_conversion)
+        self.conversionConfig.set_sensitive(False)
+
+        transformationGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
+        transformationGrid.attach(space, 0, 0, 1, 1)
+        transformationGrid.attach_next_to(self.conversionConfig, space, Gtk.PositionType.RIGHT, 3, 1)
+
+        transformationBox = Gtk.Box(spacing=0)
+        transformationBox.pack_start(transformationGrid, True, True, 20)        
+        #
         #
         self.destinationLabel = Gtk.Label(halign=Gtk.Align.START)
         self.destinationLabel.set_markup("<b>Objeto de destino</b>")
 
         # Destination connection
-        self.destinationConnectionLabel = Gtk.Label(label="Iniciar Sesion", halign=Gtk.Align.START)
+        self.destinationConnectionLabel = Gtk.Label(label="Iniciar sesion", halign=Gtk.Align.START)
         
         self.destinationConnectionUser = Gtk.Entry(placeholder_text="Usuario")
         self.destinationConnectionPassword = Gtk.Entry(placeholder_text="Contraseña")
-        self.destinationConnectionPassword.set_visibility(False)        
+        self.destinationConnectionPassword.set_visibility(False)
+
+        #
+        self.destinationConnectionUser.set_text("C##BD_BICICLETAS")
+        self.destinationConnectionPassword.set_text("oracle")
+        #
         
         self.destinationConnectButton = Gtk.Button(label="Conectar")
         self.destinationConnectButton.connect("clicked", self.get_destination_connection)
@@ -99,6 +121,13 @@ class Window(Gtk.Window):
         self.destinationTableLabel = Gtk.Label(label="Tabla", halign=Gtk.Align.START)
         # Destination tables
         self.destinationTable = Gtk.ComboBoxText()
+        self.configureDataLoadButton = Gtk.Button(label="Configurar carga de datos")
+        self.configureDataLoadButton.connect("clicked", self.configure_data_load)
+        self.configureDataLoadButton.set_sensitive(False)
+
+        loadGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
+        loadGrid.attach(self.destinationTable, 0, 0, 1, 1)
+        loadGrid.attach_next_to(self.configureDataLoadButton, self.destinationTable, Gtk.PositionType.BOTTOM, 1, 1)
         
         destinationGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         # destinationGrid.attach(self.destinationLabel, 0, 4, 1, 1)
@@ -107,17 +136,13 @@ class Window(Gtk.Window):
         destinationGrid.attach_next_to(self.destinationConnectionPassword, self.destinationConnectionUser, Gtk.PositionType.RIGHT, 1, 1)        
         destinationGrid.attach_next_to(self.destinationConnectButton, self.destinationConnectionPassword, Gtk.PositionType.RIGHT, 1, 1)
         destinationGrid.attach(self.destinationTableLabel, 0, 2, 1, 1)
-        destinationGrid.attach_next_to(self.destinationTable, self.destinationTableLabel, Gtk.PositionType.RIGHT, 3, 1)
+        # destinationGrid.attach_next_to(self.destinationTable, self.destinationTableLabel, Gtk.PositionType.RIGHT, 2, 1)
+        # destinationGrid.attach_next_to(self.configureDataLoadButton, self.destinationTable, Gtk.PositionType.RIGHT, 1, 1)
+        destinationGrid.attach_next_to(loadGrid, self.destinationTableLabel, Gtk.PositionType.RIGHT, 3, 2)
         #Destination box
         destinationBox = Gtk.Box(spacing=0)
         destinationBox.pack_start(destinationGrid, True, True, 20)
-        
-        self.transformationLabel = Gtk.Label(halign=Gtk.Align.START)
-        self.transformationLabel.set_markup("<b>Conversion</b>")
-        self.conversionConfig = Gtk.Button(label="Configurar conversion de datos")
-        self.conversionConfig.connect("clicked", self.configure)
-        self.conversionConfig.set_sensitive(False)
-
+        #
         self.done = Gtk.Button(label="Ejecutar")
         self.done.connect("clicked", self.done_func)
         #
@@ -145,15 +170,19 @@ class Window(Gtk.Window):
         self.listBox.connect("row-activated", self.on_list_change)
         #
         grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=15, row_spacing=10)
-        grid.attach(self.list, 0, 0, 1, 5)
+        grid.attach(self.list, 0, 0, 1, 6)
         grid.attach_next_to(self.sourceLabel, self.list, Gtk.PositionType.RIGHT, 1, 1)
         grid.attach_next_to(sourceBox, self.sourceLabel, Gtk.PositionType.BOTTOM, 3, 1)
-        grid.attach_next_to(self.destinationLabel, sourceBox, Gtk.PositionType.BOTTOM, 1, 1)
+        
+        grid.attach_next_to(self.transformationLabel, sourceBox, Gtk.PositionType.BOTTOM, 3, 1)
+        # grid.attach_next_to(self.transformationLabel, sourceBox, Gtk.PositionType.BOTTOM, 1, 1)
+        grid.attach_next_to(transformationBox, self.transformationLabel, Gtk.PositionType.BOTTOM, 3, 1)
+        
+        grid.attach_next_to(self.destinationLabel, transformationBox, Gtk.PositionType.BOTTOM, 3, 1)
         grid.attach_next_to(destinationBox, self.destinationLabel, Gtk.PositionType.BOTTOM, 3, 1)
-        grid.attach_next_to(self.transformationLabel, destinationBox, Gtk.PositionType.BOTTOM, 1, 1)
-        grid.attach_next_to(self.conversionConfig, self.transformationLabel, Gtk.PositionType.BOTTOM, 3, 1)
+        
         grid.attach_next_to(buttonsGrid, self.list, Gtk.PositionType.BOTTOM, 1, 1)
-        grid.attach(self.done, 0, 6, 4, 1)
+        grid.attach(self.done, 1, 6, 3, 1)
         #
         #
         new = json.loads(self.get_new_format())
@@ -171,12 +200,18 @@ class Window(Gtk.Window):
     def on_source_table_changed(self, widget):
         self.selectedSourceFields = {}
 
-    def configure(self, widget):
-        if self.destinationTable.get_active_text() is None:
+    def configure_data_conversion(self, widget):
+        if len(self.selectedSourceFields) == 0:
             return None
 
-        conversionWin = ConversionWindow()
-        conversionWin.show_all()
+        isQuery = False
+        source = self.sourceTable.get_active_text()
+
+        if self.queryField.get_sensitive():
+            isQuery = True
+            source = self.get_query_content()
+
+        ConversionWindow(self.selectedSourceFields).show_all()
 
     def activate_table(self, widget, n):
         self.queryField.set_sensitive(False)
@@ -211,6 +246,7 @@ class Window(Gtk.Window):
 
         self.selectFieldsButton.set_sensitive(True)
         self.viewDataButton.set_sensitive(True)
+        self.conversionConfig.set_sensitive(True)
         
     def get_destination_connection(self, widget):
         
@@ -232,7 +268,7 @@ class Window(Gtk.Window):
         for table in tables:
             self.destinationTable.append_text(table)
 
-        self.conversionConfig.set_sensitive(True)
+        self.configureDataLoadButton.set_sensitive(True)
 
     def view_data(self, widget):
         self.show_modal(1)
@@ -260,16 +296,18 @@ class Window(Gtk.Window):
         
         DataViewWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
         
-    def done_func(self, widget):
-        # print(self.selectedSourceFields)
-        print("TODO")
-
     def get_query_content(self):
         buffer = self.queryField.get_buffer()
         startIter, endIter = buffer.get_bounds()
         content = buffer.get_text(startIter, endIter, False)
 
         return content
+
+    def configure_data_load(self, e):
+        if self.destinationTable.get_active() == -1:
+            return None
+
+        DataLoadWindow().show_all()
 
     def add_new(self, e):
         row = Gtk.ListBoxRow()
@@ -278,9 +316,16 @@ class Window(Gtk.Window):
         self.listBox.add(row)
 
         new = json.loads(self.get_new_format())
+        
+        source = new["source"]
+        source["user"] = self.sourceConnectionUser.get_text()
+        source["password"] = self.sourceConnectionPassword.get_text()
+
+        destination = new["destination"]
+        destination["user"] = self.destinationConnectionUser.get_text()
+        destination["password"] = self.destinationConnectionPassword.get_text()
 
         self.data.append(new)
-        # print(self.data)
 
         self.listBox.show_all()
 
@@ -400,7 +445,11 @@ class Window(Gtk.Window):
         self.sourceTable.set_active(int(source["table"]))
         self.destinationTable.set_active(int(destination["table"]))
         #
-        self.selectedSourceFields = source["fields"]        
+        self.selectedSourceFields = source["fields"]
+        
+    def done_func(self, widget):
+        print(self.selectedSourceFields)
+        print("TODO")
 
     def get_new_format(self):
         return '{"source":{"type":"0","user":"","password":"","table":"-1","query":"","fields":"{}"},"destination":{"user":"","password":"","table":"-1"}}'

@@ -46,7 +46,7 @@ class FieldsWindow(Gtk.Window):
             checkButton.set_active(False)
             self.selectedFields[columns[i]] = 0
 
-            if len(selectedFields) != 0 and selectedFields[columns[i]] == 1:
+            if len(selectedFields) != 0 and (not isinstance(selectedFields[columns[i]], int) or selectedFields[columns[i]] == 1):
                 checkButton.set_active(True)
                 self.selectedFields[columns[i]] = 1
 

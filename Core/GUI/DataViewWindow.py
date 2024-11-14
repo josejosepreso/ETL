@@ -16,18 +16,23 @@ class DataViewWindow(Gtk.Window):
         db = DBManager(self.user, self.pswd)
     
         data = db.get_data(self.source, self.selectedFields, self.isQuery)
-        
+
         fields = []
         for field in self.selectedFields:
+
+            if not isinstance(self.selectedFields[field], int):
+                fields.append(field)
+                continue
+                
             if int(self.selectedFields[field]) == 1:
                 fields.append(field)
 
-        if len(fields) == 0:
+        if len(fields) == 0 or data is None:
             self.destroy()
             return None
 
         self.set_border_width(20)
-        self.set_default_size(750, 450)
+        self.set_default_size(850, 550)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_resizable(True)
         self.set_modal(True)
