@@ -2,7 +2,8 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from Core.DBManager import DBManager
-from Core.GUI.MessageDialogWindow import MessageDialogWindow 
+from Core.GUI.MessageDialogWindow import MessageDialogWindow
+import json
 
 class FieldsWindow(Gtk.Window):
     def __init__(self, user, pswd, source, isQuery, selectedFields):
@@ -42,15 +43,18 @@ class FieldsWindow(Gtk.Window):
         for i in range(0, len(columns)):
 
             checkButton = Gtk.CheckButton(label=columns[i])
-            
+
             checkButton.set_active(False)
-            self.selectedFields[columns[i]] = 0
 
-            if len(selectedFields) != 0 and (not isinstance(selectedFields[columns[i]], int) or selectedFields[columns[i]] == 1):
+            current = columns[i]
+            
+            self.selectedFields[current] = 0
+
+            if len(selectedFields) != 0 and (not isinstance(selectedFields[current], int) or selectedFields[current] == 1):
                 checkButton.set_active(True)
-                self.selectedFields[columns[i]] = 1
+                self.selectedFields[current] = 1
 
-            checkButton.connect("toggled", self.update_selected_fields, columns[i])
+            checkButton.connect("toggled", self.update_selected_fields, current)
 
             self.scrollableGrid.attach(checkButton, 0, i + 2, 1, 1)
         

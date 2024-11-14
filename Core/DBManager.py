@@ -16,7 +16,7 @@ class DBManager:
             with connection.cursor() as cur:
                 cur.execute("SELECT TABLE_NAME FROM USER_TABLES")
                 for row in cur:
-                    tables.append(str(row).replace("('", "").replace("',)", ""))
+                    tables.append(str(row[0]))
             
             connection.close()
         except Exception as e:
@@ -77,7 +77,12 @@ class DBManager:
 
         del fields
 
-        fields = str(selectedFields).replace("[","").replace("]","").replace("'","")
+        fields = ""
+
+        for i, field in enumerate(selectedFields):
+            fields += field
+            if i+1 < len(selectedFields):
+                fields += ","
         
         query = "SELECT %s FROM %s"%(fields, source)
 

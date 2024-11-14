@@ -291,6 +291,7 @@ class Window(Gtk.Window):
             source = self.sourceTable.get_active_text()
 
         if action == 0:
+            self.selectedSourceFields = {}
             FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
             return None
         
