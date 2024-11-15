@@ -19,6 +19,7 @@ class Window(Gtk.Window):
         #
         self.data = []
         self.prevSelectedRow = None
+        self.prevQueryContent = None
         #
         # Source connection
         self.sourceConnectionLabel = Gtk.Label(label="Iniciar sesion", halign=Gtk.Align.START)
@@ -142,6 +143,8 @@ class Window(Gtk.Window):
         #Destination box
         destinationBox = Gtk.Box(spacing=0)
         destinationBox.pack_start(destinationGrid, True, True, 20)
+        #
+        self.fieldsMapping = {}
         #
         self.done = Gtk.Button(label="Ejecutar")
         self.done.connect("clicked", self.done_func)
@@ -291,7 +294,9 @@ class Window(Gtk.Window):
             source = self.sourceTable.get_active_text()
 
         if action == 0:
-            self.selectedSourceFields = {}
+            if self.queryField.get_sensitive() and self.prevQueryContent != source:
+                self.selectedSourceFields = {}
+            self.prevQueryContent = source
             FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
             return None
         
@@ -305,10 +310,12 @@ class Window(Gtk.Window):
         return content
 
     def configure_data_load(self, e):
-        if self.destinationTable.get_active() == -1:
+        if self.destinationTable.get_active() == -1 or len(self.selectedSourceFields) == 0:
             return None
 
-        DataLoadWindow().show_all()
+        destination = self.destinationTable.get_active_text()
+
+        DataLoadWindow(self.destinationConnectionUser, self.destinationConnectionPassword, self.selectedSourceFields, destination, self.fieldsMapping).show_all()
 
     def add_new(self, e):
         row = Gtk.ListBoxRow()
@@ -372,22 +379,10 @@ class Window(Gtk.Window):
         self.on_list_change(None, current)
 
     def on_list_change(self, e, row):
-
-        # if row.get_index() == self.prevSelectedRow.get_index():
-            # return None
         if self.prevSelectedRow is not None:
             index = self.prevSelectedRow.get_index()
 
             source = self.data[index]["source"]
-            
-            # self.data[index]["source"]["user"] = self.sourceConnectionUser.get_text()
-            # self.data[index]["source"]["password"] = self.sourceConnectionPassword.get_text()
-            # 
-            # self.data[index]["source"]["type"] = '0' if self.sourceTable.get_sensitive() else '1'
-            #     
-            # self.data[index]["source"]["table"] = self.sourceTable.get_active()
-            # self.data[index]["source"]["fields"] = self.selectedSourceFields
-            # self.data[index]["source"]["query"] = self.get_query_content()
 
             source["user"] = self.sourceConnectionUser.get_text()
             source["password"] = self.sourceConnectionPassword.get_text()
@@ -399,14 +394,12 @@ class Window(Gtk.Window):
             source["query"] = self.get_query_content()
 
             destination = self.data[index]["destination"]
-            
-            # self.data[index]["destination"]["user"] = self.destinationConnectionUser.get_text()
-            # self.data[index]["destination"]["password"] = self.destinationConnectionPassword.get_text()
-            # self.data[index]["destination"]["table"] = self.destinationTable.get_active()
 
             destination["user"] = self.destinationConnectionUser.get_text()
             destination["password"] = self.destinationConnectionPassword.get_text()
-            destination["table"] = self.destinationTable.get_active()            
+            destination["table"] = self.destinationTable.get_active()
+
+            self.data[index]["mapping"] = self.fieldsMapping
             
         self.prevSelectedRow = row
         
@@ -416,8 +409,6 @@ class Window(Gtk.Window):
         
         obj = self.data[self.listBox.get_selected_row().get_index()]
 
-        # print(obj)
-        
         source = obj["source"]
 
         self.sourceConnectionUser.set_text(source["user"])
@@ -447,10 +438,11 @@ class Window(Gtk.Window):
         self.destinationTable.set_active(int(destination["table"]))
         #
         self.selectedSourceFields = source["fields"]
+        #
+        self.fieldsMapping = obj["mapping"]
         
     def done_func(self, widget):
-        print(self.selectedSourceFields)
-        print("TODO")
+        print(self.fieldsMapping)
 
     def get_new_format(self):
-        return '{"source":{"type":"0","user":"","password":"","table":"-1","query":"","fields":"{}"},"destination":{"user":"","password":"","table":"-1"}}'
+        return '{"source":{"type":"0","user":"","password":"","table":"-1","query":"","fields":"{}"},"destination":{"user":"","password":"","table":"-1"},"mapping":{}}'

@@ -1,6 +1,7 @@
 import oracledb
 import re
 import Core.config as config
+from Core.GUI.MessageDialogWindow import MessageDialogWindow
 
 class DBManager:
     def __init__(self, user, pswd):
@@ -101,7 +102,7 @@ class DBManager:
             
             connection.close()
         except Exception as e:
-            print(e)
+            MessageDialogWindow(e)
             return None        
 
         return data

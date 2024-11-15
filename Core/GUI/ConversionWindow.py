@@ -6,7 +6,7 @@ class ConversionWindow(Gtk.Window):
     def __init__(self, sourceFields):
         super().__init__(title="Data conversion")
 
-        self.sourceFields = {}
+        self.sourceFields = sourceFields
         # checkBox : comboBox
         self.fieldsActions = {}
         # comboBox : comboBox
@@ -19,7 +19,7 @@ class ConversionWindow(Gtk.Window):
         self.set_modal(True)
 
         self.scrolledWindow = Gtk.ScrolledWindow()
-        self.mainGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
+
         self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         
         previous = None
@@ -47,27 +47,34 @@ class ConversionWindow(Gtk.Window):
 
                     if "LOWER" in fn:
                         action.set_active(0)
-
+                        continue
                     if "UPPER" in fn:
                         action.set_active(1)
-
+                        continue
                     if "EXTRACT" in fn:
                         action.set_active(2)
-                        self.on_action_change(action, current)
-
-                    if "CONCAT" in fn:
+                        n = -1
+                        if "YEAR" in fn: n = 0
+                        if "MONTH" in fn: n = 1
+                        if "DAY" in fn: n = 2
+                        if "HOUR" in fn: n = 3
+                        self.actionsActions[self.fieldsActions[current]].set_active(n)
+                        continue
+                    if "||" in fn:
                         action.set_active(3)
+                        self.actionsActions[self.fieldsActions[current]].set_active(list(self.sourceFields).index(fn.split("||")[2]))
 
         self.scrolledWindow.add(self.grid)
 
-        self.mainGrid.attach(self.scrolledWindow, 0, 0, 1, 35)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0)
+        box.pack_start(self.scrolledWindow, True, True, 0)
 
         okButton = Gtk.Button(label="Aceptar")
         okButton.connect("clicked", self.done, sourceFields)
 
-        self.mainGrid.attach_next_to(okButton, self.scrolledWindow, Gtk.PositionType.BOTTOM, 1, 1)
-        
-        self.add(self.mainGrid)
+        box.pack_end(okButton, False, False, 0)
+
+        self.add(box)
 
     def on_button_toggled(self, button, name):
         comboBox = self.fieldsActions[name]
@@ -90,9 +97,6 @@ class ConversionWindow(Gtk.Window):
         self.on_action_change(comboBox, name)
 
     def on_action_change(self, comboBox, checkBox):
-
-        # print(sourceFields)
-
         action = self.actionsActions[comboBox]
 
         if action is not None:
@@ -104,14 +108,11 @@ class ConversionWindow(Gtk.Window):
 
         field = checkBox.get_label()        
 
-        if action == 0:
-            self.sourceFields[field] = "LOWER(%s)"%(field)
+        if action == 0: self.sourceFields[field] = "LOWER(%s)"%(field)
 
-        if action == 1:
-            self.sourceFields[field] = "UPPER(%s)"%(field)
+        if action == 1: self.sourceFields[field] = "UPPER(%s)"%(field)
 
-        if action < 2:
-            return None
+        if action < 2: return None
             
         options = Gtk.ComboBoxText()
         options.set_entry_text_column(0)
@@ -127,34 +128,28 @@ class ConversionWindow(Gtk.Window):
         if action == 3:
             for current in self.sourceFields:
                 options.append_text(current)
-
             options.connect("changed", self.on_field_change, field)
 
         self.grid.attach_next_to(options, comboBox, Gtk.PositionType.RIGHT, 1, 1)
 
         self.actionsActions[comboBox] = options
                 
-        self.mainGrid.show_all()
+        self.grid.show_all()
 
     def on_unit_change(self, unit, field):
-
         s = ""
 
         u = unit.get_active()
 
-        if u == 0:
-            s = "YEAR"
-        if u == 1:
-            s = "MONTH"
-        if u == 2:
-            s = "DAY"
-        else:
-            s = "HOUR"
+        if u == 0: s = "YEAR"
+        if u == 1: s = "MONTH"
+        if u == 2: s = "DAY"
+        if u == 3: s = "HOUR"
         
         self.sourceFields[field] = "EXTRACT(%s FROM %s)"%(s,field)
 
     def on_field_change(self, field1, field):
-        self.sourceFields[field] = "CONCAT(%s,%s)"%(field,field1.get_active_text())
+        self.sourceFields[field] = "%s||' '||%s"%(field,field1.get_active_text())
 
     def done(self, e, fields):
         for field in self.sourceFields:
