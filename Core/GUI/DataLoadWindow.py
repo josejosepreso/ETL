@@ -17,7 +17,7 @@ class DataLoadWindow(Gtk.Window):
         self.mapping = {}
 
         self.set_border_width(20)
-        self.set_default_size(600, 400)
+        self.set_default_size(700, 500)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_resizable(False)
         self.set_modal(True)

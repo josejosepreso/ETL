@@ -191,7 +191,7 @@ class Window(Gtk.Window):
         new = json.loads(self.get_new_format())
         self.data.append(new)
         row = Gtk.ListBoxRow()
-        label = Gtk.Label("Nuevo objeto", halign=Gtk.Align.START)
+        label = Gtk.Label("Tarea de flujo de datos", halign=Gtk.Align.START)
         row.add(label)
         self.listBox.add(row)
         self.listBox.select_row(row)
@@ -294,7 +294,7 @@ class Window(Gtk.Window):
             source = self.sourceTable.get_active_text()
 
         if action == 0:
-            if self.queryField.get_sensitive() and self.prevQueryContent != source:
+            if isQuery and self.queryField.get_sensitive() and self.prevQueryContent != source:
                 self.selectedSourceFields = {}
             self.prevQueryContent = source
             FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
@@ -319,7 +319,7 @@ class Window(Gtk.Window):
 
     def add_new(self, e):
         row = Gtk.ListBoxRow()
-        label = Gtk.Label("Nuevo objeto", halign=Gtk.Align.START)
+        label = Gtk.Label("Tarea de flujo de datos", halign=Gtk.Align.START)
         row.add(label)
         self.listBox.add(row)
 
