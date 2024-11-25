@@ -5,8 +5,12 @@ from Core.GUI.MessageDialogWindow import MessageDialogWindow
 
 class DBManager:
     def __init__(self, user, pswd):
-        self.user = user.get_text()
-        self.pswd = pswd.get_text()
+        self.user = user
+        self.pswd = pswd
+
+        if not isinstance(user, str) and not isinstance(pswd, str):
+            self.user = user.get_text()
+            self.pswd = pswd.get_text()
 
     def get_user_tables(self):
         tables = []
@@ -61,9 +65,7 @@ class DBManager:
 
         return columns
 
-    def get_data(self, source, fields, isQuery):
-        data =[]
-
+    def generate_query(self, source, fields, isQuery):
         selectedFields = []
         for k in fields:
             if not isinstance(fields[k], int):
@@ -91,6 +93,16 @@ class DBManager:
             source = re.search('from.*', source, flags=re.IGNORECASE|re.DOTALL).group()
             query= "SELECT %s %s"%(fields, source)
 
+        return query
+
+    def get_data(self, source, fields, isQuery):
+        data =[]
+
+        query = self.generate_query(source, fields, isQuery)
+
+        if query is None:
+            return None
+
         try:
             connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
 
@@ -106,3 +118,55 @@ class DBManager:
             return None        
 
         return data
+
+    def insert(self, source, fields, isQuery, destination, mappings):
+        query = self.generate_query(source, fields, isQuery)
+
+        if query is None:
+            return None
+
+        info = []
+        data = []
+        
+        try:
+            connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
+
+            with connection.cursor() as cur:
+                cur.execute(query)
+
+                for row in cur.description:
+                    info.append(row)
+
+                for row in cur:
+                    data.append(row)
+            
+            connection.close()
+        except Exception as e:
+            MessageDialogWindow(e)
+            return None        
+
+        tomap = []
+        columns = "("
+        for i, column in enumerate(mappings):
+            if mappings[column].strip() != "":
+                columns += mappings[column]
+                if i < len(mappings) - 1:
+                    columns += ","
+                tomap.append(i)
+        columns += ")"
+            
+        values = ""
+        for row in data:
+            values += "("
+            for i in tomap:
+                if "TYPE_VARCHAR" in str(info[i][1]):
+                    values += "'%s'"%(str(row[i]))
+                else:
+                    values += str(row[i])                    
+                if tomap.index(i) != len(tomap) - 1:
+                    values += ","
+            values += ") "
+                
+        dml = "INSERT INTO %s "%(destination) + columns + " VALUES " + values
+
+        print(dml)

@@ -19,12 +19,7 @@ class DataViewWindow(Gtk.Window):
 
         fields = []
         for field in self.selectedFields:
-
-            if not isinstance(self.selectedFields[field], int):
-                fields.append(field)
-                continue
-                
-            if int(self.selectedFields[field]) == 1:
+            if not isinstance(self.selectedFields[field], int) or int(self.selectedFields[field]) == 1:
                 fields.append(field)
 
         if len(fields) == 0 or data is None:

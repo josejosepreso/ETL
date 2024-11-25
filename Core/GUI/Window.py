@@ -26,7 +26,7 @@ class Window(Gtk.Window):
         self.sourceConnectionUser = Gtk.Entry(placeholder_text="Usuario")
         self.sourceConnectionPassword = Gtk.Entry(placeholder_text="Contraseña")
         #
-        self.sourceConnectionUser.set_text("C##BD_BICICLETAS")
+        self.sourceConnectionUser.set_text("C##OT")
         self.sourceConnectionPassword.set_text("oracle")
         #
         self.sourceConnectionPassword.set_visibility(False)
@@ -112,7 +112,7 @@ class Window(Gtk.Window):
         self.destinationConnectionPassword.set_visibility(False)
 
         #
-        self.destinationConnectionUser.set_text("C##BD_BICICLETAS")
+        self.destinationConnectionUser.set_text("C##OT")
         self.destinationConnectionPassword.set_text("oracle")
         #
         
@@ -184,7 +184,7 @@ class Window(Gtk.Window):
         grid.attach_next_to(self.destinationLabel, transformationBox, Gtk.PositionType.BOTTOM, 3, 1)
         grid.attach_next_to(destinationBox, self.destinationLabel, Gtk.PositionType.BOTTOM, 3, 1)
         
-        grid.attach_next_to(buttonsGrid, self.list, Gtk.PositionType.BOTTOM, 1, 1)
+        grid.attach_next_to(buttonsGrid, self.list, Gtk.PositionType.BOTTOM, 1, 2)
         grid.attach(self.done, 1, 6, 3, 1)
         #
         #
@@ -294,9 +294,9 @@ class Window(Gtk.Window):
             source = self.sourceTable.get_active_text()
 
         if action == 0:
-            if isQuery and self.queryField.get_sensitive() and self.prevQueryContent != source:
-                self.selectedSourceFields = {}
-            self.prevQueryContent = source
+            #if self.queryField.get_sensitive() and self.prevQueryContent != source:
+            #    self.selectedSourceFields = {}
+            #self.prevQueryContent = source
             FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
             return None
         
@@ -378,7 +378,7 @@ class Window(Gtk.Window):
 
         self.on_list_change(None, current)
 
-    def on_list_change(self, e, row):
+    def on_list_change(self, widget, row):
         if self.prevSelectedRow is not None:
             index = self.prevSelectedRow.get_index()
 
@@ -390,6 +390,7 @@ class Window(Gtk.Window):
             source["type"] = '0' if self.sourceTable.get_sensitive() else '1'
             
             source["table"] = self.sourceTable.get_active()
+            source["tableName"] = self.sourceTable.get_active_text()            
             source["fields"] = self.selectedSourceFields
             source["query"] = self.get_query_content()
 
@@ -398,6 +399,7 @@ class Window(Gtk.Window):
             destination["user"] = self.destinationConnectionUser.get_text()
             destination["password"] = self.destinationConnectionPassword.get_text()
             destination["table"] = self.destinationTable.get_active()
+            destination["tableName"] = self.destinationTable.get_active_text()
 
             self.data[index]["mapping"] = self.fieldsMapping
             
@@ -405,8 +407,7 @@ class Window(Gtk.Window):
         
         self.show_current()
 
-    def show_current(self):
-        
+    def show_current(self):        
         obj = self.data[self.listBox.get_selected_row().get_index()]
 
         source = obj["source"]
@@ -440,9 +441,27 @@ class Window(Gtk.Window):
         self.selectedSourceFields = source["fields"]
         #
         self.fieldsMapping = obj["mapping"]
-        
-    def done_func(self, widget):
-        print(self.fieldsMapping)
 
     def get_new_format(self):
-        return '{"source":{"type":"0","user":"","password":"","table":"-1","query":"","fields":"{}"},"destination":{"user":"","password":"","table":"-1"},"mapping":{}}'
+        return '{"source":{"type":"0","user":"","password":"","table":"-1","tableName":"","query":"","fields":"{}"},"destination":{"user":"","password":"","table":"-1","tableName":""},"mapping":{}}'
+
+    def done_func(self, widget):
+        self.on_list_change(None, self.listBox.get_selected_row())
+        
+        for i, task in enumerate(self.data):
+            if task["destination"]["table"] == -1:
+                print("Especificar un destino")
+                break
+            
+            isQuery = True
+            source = task["source"]["query"]
+            fields = task["source"]["fields"]
+            destination = task["destination"]["tableName"]
+            mappings = task["mapping"]
+            
+            if int(task["source"]["type"]) == 0:
+                isQuery = False
+                source = task["source"]["tableName"]
+
+            db = DBManager(task["source"]["user"], task["source"]["password"])
+            db.insert(source, fields, isQuery, destination, mappings)

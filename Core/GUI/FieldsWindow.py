@@ -24,7 +24,7 @@ class FieldsWindow(Gtk.Window):
             if ";" in source: message += " Consulta no debe incluir \";\""
             MessageDialogWindow(message)
             return None
-
+        
         self.set_border_width(20)
         self.set_default_size(500, 350)
         self.set_position(Gtk.WindowPosition.CENTER)
