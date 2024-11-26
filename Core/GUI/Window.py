@@ -464,4 +464,9 @@ class Window(Gtk.Window):
                 source = task["source"]["tableName"]
 
             db = DBManager(task["source"]["user"], task["source"]["password"])
-            db.insert(source, fields, isQuery, destination, mappings, task["destination"]["user"], task["destination"]["password"])
+            code = db.insert(source, fields, isQuery, destination, mappings, task["destination"]["user"], task["destination"]["password"])
+
+            if code == 1:
+                return
+
+        MessageDialogWindow("Carga de datos realizada con exito")

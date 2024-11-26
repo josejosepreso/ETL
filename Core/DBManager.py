@@ -51,18 +51,13 @@ class DBManager:
     def get_query_columns(self, query):
         columns = []
 
-        # TODO
-        fields = [str(field).lstrip().replace("\n","") for field in re.search(r"(?<=SELECT)(.*?)(?=FROM(?![^()]*\)).*)", query, flags=re.IGNORECASE|re.DOTALL).group().split(",\n")]
-
         try:
             connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
-            # TODO
             with connection.cursor() as cur:
                 cur.execute(query)
-                #for col in cur.description:
-                #    column = re.compile(re.escape("FROM"), re.IGNORECASE)
-                #    columns.append(column.sub(" FROM ", str(col[0])))
-                columns = fields
+                for col in cur.description:
+                    column = re.compile(re.escape("FROM"), re.IGNORECASE)
+                    columns.append(column.sub(" FROM ", str(col[0])))
 
             connection.close()
         except Exception as e:
@@ -71,6 +66,10 @@ class DBManager:
 
         if len(columns) == 0:
             return None
+
+        for i in range(0, len(columns)):
+            m = re.search(r"[A-Za-z]+\." + columns[i], query)
+            if m is not None and m.group() != "": columns[i] = m.group()
 
         return columns
 
@@ -154,12 +153,11 @@ class DBManager:
             connection.close()
         except Exception as e:
             MessageDialogWindow(e)
-            return
+            return 1
 
         connection = None
         
-        # store fields to map positions
-        tomap = []
+        tomap = [] # store fields to map positions
         compareColumn = ""
 
         columns = "("
@@ -180,12 +178,12 @@ class DBManager:
         columns += ")"
 
         if len(tomap) == 0:
-            return
+            return 1
 
         try:
             connection = oracledb.connect(user=destinUser, password=destinPass, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
         except Exception as e:
-            return
+            return 1
 
         compareValue = ""
             
@@ -207,19 +205,28 @@ class DBManager:
                 
             dml = """
             INSERT INTO %s %s
-            SELECT %s FROM DUAL
+            SELECT %s
+            FROM DUAL
             WHERE NOT EXISTS (SELECT 1 FROM %s WHERE %s = %s)
             """%(destination, columns, values, destination, compareColumn, compareValue)
+
+            ######
+            redate = re.search(r"\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}", dml)
+            if redate is not None and redate.group() != "":
+                dml = dml.replace(redate.group(), "TO_DATE('%s','YYYY-MM-DD')"%(redate.group().replace(" 00:00:00", "")))
+            ######
+
+            # print(dml)
 
             try:
                 with connection.cursor() as cur:
                     cur.execute(dml)
-                    cur.execute("COMMIT")        
+                    connection.commit()
             except Exception as e:
                 MessageDialogWindow(str(e) + "\nCarga de datos interrumpida.")
-                return
+                return 1
 
             values = ""
 
         connection.close()
-        MessageDialogWindow("Carga de datos realizada con exito")
+        return 0
