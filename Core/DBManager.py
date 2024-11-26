@@ -51,16 +51,25 @@ class DBManager:
     def get_query_columns(self, query):
         columns = []
 
+        # TODO
+        fields = [str(field).lstrip().replace("\n","") for field in re.search(r"(?<=SELECT)(.*?)(?=FROM(?![^()]*\)).*)", query, flags=re.IGNORECASE|re.DOTALL).group().split(",\n")]
+
         try:
             connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
-
+            # TODO
             with connection.cursor() as cur:
                 cur.execute(query)
-                for col in cur.description:
-                    columns.append(str(col[0]))
-            
+                #for col in cur.description:
+                #    column = re.compile(re.escape("FROM"), re.IGNORECASE)
+                #    columns.append(column.sub(" FROM ", str(col[0])))
+                columns = fields
+
             connection.close()
         except Exception as e:
+            print(e)
+            return None
+
+        if len(columns) == 0:
             return None
 
         return columns
@@ -74,7 +83,7 @@ class DBManager:
             
             if fields[k] == 1:
                 selectedFields.append(k)
-
+            
         if len(selectedFields) == 0:
             return None
 
@@ -90,7 +99,7 @@ class DBManager:
         query = "SELECT %s FROM %s"%(fields, source)
 
         if isQuery:
-            source = re.search('from.*', source, flags=re.IGNORECASE|re.DOTALL).group()
+            source = re.search(r"FROM(?![^()]*\)).*", source, flags=re.IGNORECASE|re.DOTALL).group()
             query= "SELECT %s %s"%(fields, source)
 
         return query
@@ -119,15 +128,17 @@ class DBManager:
 
         return data
 
-    def insert(self, source, fields, isQuery, destination, mappings):
+    # ugly
+    def insert(self, source, fields, isQuery, destination, mappings, destinUser, destinPass):
         query = self.generate_query(source, fields, isQuery)
 
         if query is None:
-            return None
+            return
 
-        info = []
+        metaData = []
         data = []
         
+        connection = None
         try:
             connection = oracledb.connect(user=self.user, password=self.pswd, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
 
@@ -135,38 +146,80 @@ class DBManager:
                 cur.execute(query)
 
                 for row in cur.description:
-                    info.append(row)
+                    metaData.append(row)
 
                 for row in cur:
                     data.append(row)
-            
+
             connection.close()
         except Exception as e:
             MessageDialogWindow(e)
-            return None        
+            return
 
+        connection = None
+        
+        # store fields to map positions
         tomap = []
+        compareColumn = ""
+
         columns = "("
-        for i, column in enumerate(mappings):
-            if mappings[column].strip() != "":
+        for column in mappings:
+            if mappings[column].strip() != "": # if this source field is mapped to a destination field
+
+                index = list(mappings).index(column)
+
+                if index == 0:
+                    compareColumn = mappings[column]
+
                 columns += mappings[column]
-                if i < len(mappings) - 1:
+
+                if index != len(mappings) - 1:
                     columns += ","
-                tomap.append(i)
+
+                tomap.append(index)
         columns += ")"
+
+        if len(tomap) == 0:
+            return
+
+        try:
+            connection = oracledb.connect(user=destinUser, password=destinPass, host=config.HOST, port=config.PORT, service_name=config.SERVICE_NAME)
+        except Exception as e:
+            return
+
+        compareValue = ""
             
         values = ""
         for row in data:
-            values += "("
             for i in tomap:
-                if "TYPE_VARCHAR" in str(info[i][1]):
+                ##
+                if i == 0:
+                    compareValue = str(row[i])
+                
+                dataType = metaData[i][1]
+    
+                if "TYPE_VARCHAR" in str(dataType):
                     values += "'%s'"%(str(row[i]))
                 else:
                     values += str(row[i])                    
                 if tomap.index(i) != len(tomap) - 1:
                     values += ","
-            values += ") "
                 
-        dml = "INSERT INTO %s "%(destination) + columns + " VALUES " + values
+            dml = """
+            INSERT INTO %s %s
+            SELECT %s FROM DUAL
+            WHERE NOT EXISTS (SELECT 1 FROM %s WHERE %s = %s)
+            """%(destination, columns, values, destination, compareColumn, compareValue)
 
-        print(dml)
+            try:
+                with connection.cursor() as cur:
+                    cur.execute(dml)
+                    cur.execute("COMMIT")        
+            except Exception as e:
+                MessageDialogWindow(str(e) + "\nCarga de datos interrumpida.")
+                return
+
+            values = ""
+
+        connection.close()
+        MessageDialogWindow("Carga de datos realizada con exito")

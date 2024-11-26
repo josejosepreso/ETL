@@ -112,7 +112,7 @@ class Window(Gtk.Window):
         self.destinationConnectionPassword.set_visibility(False)
 
         #
-        self.destinationConnectionUser.set_text("C##OT")
+        self.destinationConnectionUser.set_text("C##DW_OT")
         self.destinationConnectionPassword.set_text("oracle")
         #
         
@@ -464,4 +464,4 @@ class Window(Gtk.Window):
                 source = task["source"]["tableName"]
 
             db = DBManager(task["source"]["user"], task["source"]["password"])
-            db.insert(source, fields, isQuery, destination, mappings)
+            db.insert(source, fields, isQuery, destination, mappings, task["destination"]["user"], task["destination"]["password"])

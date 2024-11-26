@@ -42,7 +42,7 @@ class FieldsWindow(Gtk.Window):
 
         for i in range(0, len(columns)):
 
-            checkButton = Gtk.CheckButton(label=columns[i])
+            checkButton = Gtk.CheckButton(label="%s"%(columns[i]))
 
             checkButton.set_active(False)
 
