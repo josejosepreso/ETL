@@ -26,9 +26,6 @@ class Window(Gtk.Window):
         self.sourceConnectionUser = Gtk.Entry(placeholder_text="Usuario")
         self.sourceConnectionPassword = Gtk.Entry(placeholder_text="Contraseña")
         #
-        self.sourceConnectionUser.set_text("C##OT")
-        self.sourceConnectionPassword.set_text("oracle")
-        #
         self.sourceConnectionPassword.set_visibility(False)
         self.sourceConnectButton = Gtk.Button(label="Conectar")
         self.sourceConnectButton.connect("clicked", self.get_source_connection)
@@ -110,12 +107,7 @@ class Window(Gtk.Window):
         self.destinationConnectionUser = Gtk.Entry(placeholder_text="Usuario")
         self.destinationConnectionPassword = Gtk.Entry(placeholder_text="Contraseña")
         self.destinationConnectionPassword.set_visibility(False)
-
         #
-        self.destinationConnectionUser.set_text("C##DW_OT")
-        self.destinationConnectionPassword.set_text("oracle")
-        #
-        
         self.destinationConnectButton = Gtk.Button(label="Conectar")
         self.destinationConnectButton.connect("clicked", self.get_destination_connection)
 
@@ -455,7 +447,7 @@ class Window(Gtk.Window):
         self.on_list_change(None, self.listBox.get_selected_row())
         
         for i, task in enumerate(self.data):
-            if task["destination"]["table"] == -1 or task["source"]["table"] == -1 or task["source"]["query"] == "":
+            if task["destination"]["table"] == -1 or (task["source"]["table"] == -1 and task["source"]["query"] == ""):
                 return
             
             isQuery = True
