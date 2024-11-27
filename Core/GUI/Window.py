@@ -15,7 +15,7 @@ class Window(Gtk.Window):
         self.set_border_width(20)
         self.set_default_size(1224, 646)
         self.set_position(Gtk.WindowPosition.CENTER)
-        # self.set_resizable(False)
+        self.set_resizable(True)
         #
         self.data = []
         self.prevSelectedRow = None
@@ -48,7 +48,6 @@ class Window(Gtk.Window):
         self.queryField.set_sensitive(False)
         self.scrolledWindow.add(self.queryField)
         #
-        # self.fieldsLabel = Gtk.Label(label="Campos", halign=Gtk.Align.START)
         self.selectFieldsButton = Gtk.Button(label="Seleccionar campos")
         self.selectFieldsButton.connect("clicked", self.select_source_fields)
         self.selectFieldsButton.set_sensitive(False)
@@ -75,7 +74,6 @@ class Window(Gtk.Window):
         sourceGrid.attach(self.sourceType2, 0, 4, 1, 1)
         sourceGrid.attach_next_to(self.scrolledWindow, self.sourceType2, Gtk.PositionType.RIGHT, 3, 1)
 
-        #sourceGrid.attach(self.fieldsLabel, 0, 5, 1, 1)
         sourceGrid.attach_next_to(anotherGrid, self.scrolledWindow, Gtk.PositionType.BOTTOM, 3, 1)
         # Source box
         sourceBox = Gtk.Box(spacing=0)
@@ -123,14 +121,11 @@ class Window(Gtk.Window):
         loadGrid.attach_next_to(self.configureDataLoadButton, self.destinationTable, Gtk.PositionType.BOTTOM, 1, 1)
         
         destinationGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
-        # destinationGrid.attach(self.destinationLabel, 0, 4, 1, 1)
         destinationGrid.attach(self.destinationConnectionLabel, 0, 1, 1, 1)
         destinationGrid.attach_next_to(self.destinationConnectionUser, self.destinationConnectionLabel, Gtk.PositionType.RIGHT, 1, 1)
         destinationGrid.attach_next_to(self.destinationConnectionPassword, self.destinationConnectionUser, Gtk.PositionType.RIGHT, 1, 1)        
         destinationGrid.attach_next_to(self.destinationConnectButton, self.destinationConnectionPassword, Gtk.PositionType.RIGHT, 1, 1)
         destinationGrid.attach(self.destinationTableLabel, 0, 2, 1, 1)
-        # destinationGrid.attach_next_to(self.destinationTable, self.destinationTableLabel, Gtk.PositionType.RIGHT, 2, 1)
-        # destinationGrid.attach_next_to(self.configureDataLoadButton, self.destinationTable, Gtk.PositionType.RIGHT, 1, 1)
         destinationGrid.attach_next_to(loadGrid, self.destinationTableLabel, Gtk.PositionType.RIGHT, 3, 2)
         #Destination box
         destinationBox = Gtk.Box(spacing=0)
@@ -142,11 +137,11 @@ class Window(Gtk.Window):
         self.done.connect("clicked", self.done_func)
         #
         #
-        self.addButton = Gtk.Button(None, image=Gtk.Image(stock=Gtk.STOCK_ADD))
+        self.addButton = Gtk.Button(label="Agregar")
         self.addButton.connect("clicked", self.add_new)
-        self.delButton = Gtk.Button(None, image=Gtk.Image(stock=Gtk.STOCK_DELETE))
+        self.delButton = Gtk.Button(label="Eliminar")
         self.delButton.connect("clicked", self.delete)
-        self.renameButton = Gtk.Button(None, image=Gtk.Image(stock=Gtk.STOCK_EDIT))
+        self.renameButton = Gtk.Button(label="Renombrar")
         self.renameButton.connect("clicked", self.rename)
         #
         buttonsGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
@@ -170,7 +165,6 @@ class Window(Gtk.Window):
         grid.attach_next_to(sourceBox, self.sourceLabel, Gtk.PositionType.BOTTOM, 3, 1)
         
         grid.attach_next_to(self.transformationLabel, sourceBox, Gtk.PositionType.BOTTOM, 3, 1)
-        # grid.attach_next_to(self.transformationLabel, sourceBox, Gtk.PositionType.BOTTOM, 1, 1)
         grid.attach_next_to(transformationBox, self.transformationLabel, Gtk.PositionType.BOTTOM, 3, 1)
         
         grid.attach_next_to(self.destinationLabel, transformationBox, Gtk.PositionType.BOTTOM, 3, 1)
