@@ -205,7 +205,7 @@ class Window(Gtk.Window):
 
     def configure_data_conversion(self, widget):
         if len(self.selectedSourceFields) == 0:
-            return None
+            return
 
         isQuery = False
         source = self.sourceTable.get_active_text()
@@ -231,7 +231,7 @@ class Window(Gtk.Window):
         self.sourceTable.remove_all()
         
         if self.sourceConnectionUser.get_text().strip() == "" and self.sourceConnectionPassword.get_text().strip() == "":
-            return None
+            return
         
         db = DBManager(self.sourceConnectionUser, self.sourceConnectionPassword)
         
@@ -241,7 +241,7 @@ class Window(Gtk.Window):
             self.selectFieldsButton.set_sensitive(False)
             self.viewDataButton.set_sensitive(False)
             MessageDialogWindow("Error conectando a la base de datos")
-            return None
+            return
 
         self.sourceTable.set_entry_text_column(0)
         for table in tables:
@@ -256,7 +256,7 @@ class Window(Gtk.Window):
         self.destinationTable.remove_all()
 
         if self.destinationConnectionUser.get_text().strip() == "" and self.destinationConnectionPassword.get_text().strip() == "":
-            return None
+            return
         
         db = DBManager(self.destinationConnectionUser, self.destinationConnectionPassword)
         
@@ -265,7 +265,7 @@ class Window(Gtk.Window):
         if tables is None:
             MessageDialogWindow("Error conectando a la base de datos")
             self.conversionConfig.set_sensitive(False)
-            return None
+            return
 
         self.destinationTable.set_entry_text_column(0)
         for table in tables:
@@ -284,7 +284,7 @@ class Window(Gtk.Window):
             (self.sourceTable.get_active_text() is None and self.sourceTable.get_sensitive()) or 
             (len(self.get_query_content()) == 0 and self.queryField.get_sensitive())
         ):
-            return None
+            return
     
         isQuery = True
         source = self.get_query_content()
@@ -294,11 +294,14 @@ class Window(Gtk.Window):
             source = self.sourceTable.get_active_text()
 
         if action == 0:
-            #if self.queryField.get_sensitive() and self.prevQueryContent != source:
-            #    self.selectedSourceFields = {}
-            #self.prevQueryContent = source
+            if isQuery and self.prevQueryContent != source:
+                self.selectedSourceFields = {}
+                
+            if isQuery:
+                self.prevQueryContent = source
+            
             FieldsWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
-            return None
+            return
         
         DataViewWindow(self.sourceConnectionUser, self.sourceConnectionPassword, source, isQuery, self.selectedSourceFields).show_all()
         
@@ -311,7 +314,7 @@ class Window(Gtk.Window):
 
     def configure_data_load(self, e):
         if self.destinationTable.get_active() == -1 or len(self.selectedSourceFields) == 0:
-            return None
+            return
 
         destination = self.destinationTable.get_active_text()
 
@@ -345,7 +348,7 @@ class Window(Gtk.Window):
         current = self.listBox.get_selected_row()
 
         if current is None:
-            return None
+            return
         
         self.prevSelectedRow = None        
         self.data.pop(current.get_index())
@@ -356,7 +359,7 @@ class Window(Gtk.Window):
         current = self.listBox.get_selected_row()
 
         if current is None:
-            return None
+            return
 
         messagedialog = Gtk.MessageDialog(parent=None, flags=0, type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.OK, message_format="Nombre de objeto:")
         action_area = messagedialog.get_content_area()
@@ -372,7 +375,7 @@ class Window(Gtk.Window):
         messagedialog.destroy()
 
         if name.strip() == "":
-            return None
+            return
 
         current.get_children()[0].set_text(name)
 
@@ -393,6 +396,7 @@ class Window(Gtk.Window):
             source["tableName"] = self.sourceTable.get_active_text()            
             source["fields"] = self.selectedSourceFields
             source["query"] = self.get_query_content()
+            source["prevquery"] = self.prevQueryContent            
 
             destination = self.data[index]["destination"]
 
@@ -440,21 +444,23 @@ class Window(Gtk.Window):
         #
         self.selectedSourceFields = source["fields"]
         #
+        self.prevQueryContent = source["prevquery"]
+        #
         self.fieldsMapping = obj["mapping"]
 
     def get_new_format(self):
-        return '{"source":{"type":"0","user":"","password":"","table":"-1","tableName":"","query":"","fields":"{}"},"destination":{"user":"","password":"","table":"-1","tableName":""},"mapping":{}}'
+        return '{"source":{"type":"0","user":"","password":"","table":"-1","tableName":"","query":"","prevquery":"","fields":"{}"},"destination":{"user":"","password":"","table":"-1","tableName":""},"mapping":{}}'
 
     def done_func(self, widget):
         self.on_list_change(None, self.listBox.get_selected_row())
         
         for i, task in enumerate(self.data):
-            if task["destination"]["table"] == -1:
-                print("Especificar un destino")
-                break
+            if task["destination"]["table"] == -1 or task["source"]["table"] == -1 or task["source"]["query"] == "":
+                return
             
             isQuery = True
             source = task["source"]["query"]
+            
             fields = task["source"]["fields"]
             destination = task["destination"]["tableName"]
             mappings = task["mapping"]

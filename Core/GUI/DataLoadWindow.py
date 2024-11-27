@@ -17,33 +17,27 @@ class DataLoadWindow(Gtk.Window):
         self.mapping = {}
 
         self.set_border_width(20)
-        self.set_default_size(700, 500)
+        self.set_default_size(850, 550)
         self.set_position(Gtk.WindowPosition.CENTER)
-        self.set_resizable(False)
+        self.set_resizable(True)
         self.set_modal(True)
 
         self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
         self.scrolledWindow = Gtk.ScrolledWindow()
 
         prevlabel = Gtk.Label()
-        prevlabel.set_markup("<b>Objeto origen</b>")
+        prevlabel.set_markup("<b>Origen</b>")
         self.grid.attach(prevlabel, 0, 0, 1, 1)
         
         currentlabel = Gtk.Label()
-        currentlabel.set_markup("<b>Objeto destino</b>")
+        currentlabel.set_markup("<b>Destino</b>")
         
-        space = Gtk.Label("")
-        
-        self.grid.attach_next_to(space, prevlabel, Gtk.PositionType.RIGHT, 1, 1)
-        self.grid.attach_next_to(currentlabel, space, Gtk.PositionType.RIGHT, 1, 1)
+        self.grid.attach_next_to(currentlabel, prevlabel, Gtk.PositionType.RIGHT, 1, 1)
 
         for field in sourceFields:
             if sourceFields[field] == 1 or not isinstance(sourceFields[field], int):
                 currentlabel = Gtk.Label(field)
                 self.grid.attach_next_to(currentlabel, prevlabel, Gtk.PositionType.BOTTOM, 1, 1)
-                
-                image = Gtk.Image(stock=Gtk.STOCK_GO_FORWARD)
-                self.grid.attach_next_to(image, currentlabel, Gtk.PositionType.RIGHT, 1, 1)
                 
                 combobox = Gtk.ComboBoxText()
                 for column in columns:
@@ -56,7 +50,7 @@ class DataLoadWindow(Gtk.Window):
                     self.mapping[field] = mapping[field]
                     combobox.set_active(list(columns).index(mapping[field]))
                     
-                self.grid.attach_next_to(combobox, image, Gtk.PositionType.RIGHT, 1, 1)
+                self.grid.attach_next_to(combobox, currentlabel, Gtk.PositionType.RIGHT, 1, 1)
                 
                 prevlabel = currentlabel
 
