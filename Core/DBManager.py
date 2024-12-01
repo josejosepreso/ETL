@@ -232,7 +232,7 @@ class DBManager:
                     cur.execute(dml)
                     connection.commit()
             except Exception as e:
-                MessageDialogWindow(str(e) + "\n\nCarga de datos interrumpida.")
+                MessageDialogWindow(str(e) + "\n\n%s.\n\nCarga de datos interrumpida."%(dml))
                 return 1
 
             values = ""
