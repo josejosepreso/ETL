@@ -21,7 +21,6 @@ class FieldsWindow(Gtk.Window):
         if columns is None:
             self.destroy()
             message = "No se encontraron columnas."
-            if ";" in source: message += " Consulta no debe incluir \";\""
             MessageDialogWindow(message)
             return None
         

@@ -155,7 +155,7 @@ class DBManager:
         connection = None
         
         tomap = [] # store fields to map positions
-        compareColumn = ""
+        compareColumns = []
 
         columns = "("
         for column in mappings:
@@ -163,8 +163,7 @@ class DBManager:
 
                 index = list(mappings).index(column)
 
-                if index == 0:
-                    compareColumn = mappings[column]
+                compareColumns.append(mappings[column])
 
                 columns += mappings[column]
 
@@ -182,21 +181,24 @@ class DBManager:
         except Exception as e:
             return 1
 
-        compareValue = ""
+        compareValues = []
             
         values = ""
         for row in data:
             for i in tomap:
+                value = str(row[i])
+
+                if value == "None":
+                    value = "NULL"
                 ##
-                if i == 0:
-                    compareValue = str(row[i])
+                compareValues.append(value)
                 
                 dataType = metaData[i][1]
-    
+
                 if "TYPE_VARCHAR" in str(dataType):
-                    values += "'%s'"%(str(row[i]))
+                    values += "'%s'"%(value)
                 else:
-                    values += str(row[i])                    
+                    values += value
                 if tomap.index(i) != len(tomap) - 1:
                     values += ","
                 
@@ -204,8 +206,18 @@ class DBManager:
             INSERT INTO %s %s
             SELECT %s
             FROM DUAL
-            WHERE NOT EXISTS (SELECT 1 FROM %s WHERE %s = %s)
-            """%(destination, columns, values, destination, compareColumn, compareValue)
+            WHERE NOT EXISTS (SELECT 1 FROM %s WHERE %s = %s
+            """%(destination, columns, values, destination, compareColumns[0], compareValues[0])
+
+            factsTable = re.search("HECHOS", destination, flags=re.IGNORECASE)
+            if factsTable is not None and factsTable.group() != "":
+                dml += " AND"
+                for i in range(1, len(compareValues)):
+                    dml += " %s = %s "%(compareColumns[i], compareValues[i])
+                    if i < len(compareValues) - 1:
+                        dml += "AND"
+
+            dml += ")"
 
             ######
             redate = re.search(r"\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}", dml)
@@ -213,17 +225,18 @@ class DBManager:
                 dml = dml.replace(redate.group(), "TO_DATE('%s','YYYY-MM-DD')"%(redate.group().replace(" 00:00:00", "")))
             ######
 
-            # print(dml)
+            print(dml)
 
             try:
                 with connection.cursor() as cur:
                     cur.execute(dml)
                     connection.commit()
             except Exception as e:
-                MessageDialogWindow(str(e) + "\nCarga de datos interrumpida.")
+                MessageDialogWindow(str(e) + "\n\nCarga de datos interrumpida.")
                 return 1
 
             values = ""
+            compareValues = []
 
         connection.close()
         return 0

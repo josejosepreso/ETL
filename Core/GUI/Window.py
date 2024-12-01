@@ -112,6 +112,7 @@ class Window(Gtk.Window):
         self.destinationTableLabel = Gtk.Label(label="Tabla", halign=Gtk.Align.START)
         # Destination tables
         self.destinationTable = Gtk.ComboBoxText()
+        self.destinationTable.connect("changed", self.on_destination_table_changed)
         self.configureDataLoadButton = Gtk.Button(label="Configurar carga de datos")
         self.configureDataLoadButton.connect("clicked", self.configure_data_load)
         self.configureDataLoadButton.set_sensitive(False)
@@ -137,11 +138,11 @@ class Window(Gtk.Window):
         self.done.connect("clicked", self.done_func)
         #
         #
-        self.addButton = Gtk.Button(label="Agregar")
+        self.addButton = Gtk.Button(label="Nuevo")
         self.addButton.connect("clicked", self.add_new)
-        self.delButton = Gtk.Button(label="Eliminar")
+        self.delButton = Gtk.Button(label="Borrar")
         self.delButton.connect("clicked", self.delete)
-        self.renameButton = Gtk.Button(label="Renombrar")
+        self.renameButton = Gtk.Button(label="Editar")
         self.renameButton.connect("clicked", self.rename)
         #
         buttonsGrid = Gtk.Grid(column_homogeneous=True, row_homogeneous=False, column_spacing=10, row_spacing=10)
@@ -188,6 +189,9 @@ class Window(Gtk.Window):
 
     def on_source_table_changed(self, widget):
         self.selectedSourceFields = {}
+
+    def on_destination_table_changed(self, widget):
+        self.fieldsMapping = {}
 
     def configure_data_conversion(self, widget):
         if len(self.selectedSourceFields) == 0:
@@ -296,7 +300,7 @@ class Window(Gtk.Window):
         startIter, endIter = buffer.get_bounds()
         content = buffer.get_text(startIter, endIter, False)
 
-        return content
+        return content.replace(";","")
 
     def configure_data_load(self, e):
         if self.destinationTable.get_active() == -1 or len(self.selectedSourceFields) == 0:
@@ -439,6 +443,8 @@ class Window(Gtk.Window):
 
     def done_func(self, widget):
         self.on_list_change(None, self.listBox.get_selected_row())
+
+        value = 0
         
         for i, task in enumerate(self.data):
             if task["destination"]["table"] == -1 or (task["source"]["table"] == -1 and task["source"]["query"] == ""):
@@ -456,9 +462,9 @@ class Window(Gtk.Window):
                 source = task["source"]["tableName"]
 
             db = DBManager(task["source"]["user"], task["source"]["password"])
-            code = db.insert(source, fields, isQuery, destination, mappings, task["destination"]["user"], task["destination"]["password"])
+            value = db.insert(source, fields, isQuery, destination, mappings, task["destination"]["user"], task["destination"]["password"])
 
-            if code == 1:
+            if value == 1:
                 return
 
-        MessageDialogWindow("Carga de datos realizada con exito")
+        MessageDialogWindow("Proceso ETL realizado con exito.")
