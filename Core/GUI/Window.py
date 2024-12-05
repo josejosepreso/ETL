@@ -189,6 +189,7 @@ class Window(Gtk.Window):
 
     def on_source_table_changed(self, widget):
         self.selectedSourceFields = {}
+        self.on_destination_table_changed(None)
 
     def on_destination_table_changed(self, widget):
         self.fieldsMapping = {}
@@ -267,6 +268,7 @@ class Window(Gtk.Window):
         self.show_modal(1)
 
     def select_source_fields(self, widget):
+        self.on_destination_table_changed(None)        
         self.show_modal(0)
 
     def show_modal(self, action):
@@ -286,6 +288,7 @@ class Window(Gtk.Window):
         if action == 0:
             if isQuery and self.prevQueryContent != source:
                 self.selectedSourceFields = {}
+                self.fieldsMapping = {}
                 
             if isQuery:
                 self.prevQueryContent = source

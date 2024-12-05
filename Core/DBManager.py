@@ -182,10 +182,10 @@ class DBManager:
             return 1
 
         compareValues = []
-            
+
         values = ""
         for row in data:
-            for i in tomap:
+            for i in tomap:                
                 value = str(row[i])
 
                 if value == "None":
@@ -209,11 +209,14 @@ class DBManager:
             WHERE NOT EXISTS (SELECT 1 FROM %s WHERE %s = %s
             """%(destination, columns, values, destination, compareColumns[0], compareValues[0])
 
+            # bad design
             factsTable = re.search("HECHOS", destination, flags=re.IGNORECASE)
             if factsTable is not None and factsTable.group() != "":
                 dml += " AND"
+                
                 for i in range(1, len(compareValues)):
                     dml += " %s = %s "%(compareColumns[i], compareValues[i])
+                    
                     if i < len(compareValues) - 1:
                         dml += "AND"
 
